@@ -1,0 +1,3 @@
+Using 4 GPUs!
+Using 4 GPUs!
+Total Dataset: 15776
