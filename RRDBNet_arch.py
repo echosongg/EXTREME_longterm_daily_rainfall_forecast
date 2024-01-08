@@ -73,16 +73,16 @@ class RRDBNetx4x2(nn.Module):
         self.upconv4 = nn.Conv2d(nf, nf, 3, 1, 1, bias=True)
         self.HRconv2 = nn.Conv2d(nf, nf, 3, 1, 1, bias=True)
 
-        self.conv_last = nn.Conv2d(nf, out_nc, 3, 1, 1, bias=True)
+        #self.conv_last = nn.Conv2d(nf, out_nc, 3, 1, 1, bias=True)
 
-        self.lrelu = nn.LeakyReLU(negative_slope=0.2, inplace=True)
+        #self.lrelu = nn.LeakyReLU(negative_slope=0.2, inplace=True)
         
         ####
                 # 新增的贝努利-伽马输出层
-        #self.output_conv = nn.Conv2d(nf, 3, 3, 1, 1, bias=True)  # 输出3个通道：1个降雨概率，2个伽马参数
+        self.output_conv = nn.Conv2d(nf, 3, 3, 1, 1, bias=True)  # 输出3个通道：1个降雨概率，2个伽马参数
 
         # LeakyReLU 激活函数
-        #self.lrelu = nn.LeakyReLU(negative_slope=0.2, inplace=True)
+        self.lrelu = nn.LeakyReLU(negative_slope=0.2, inplace=True)
 
     def forward(self, x):
         fea = self.conv_first(x)
@@ -101,19 +101,23 @@ class RRDBNetx4x2(nn.Module):
 
         # fea = F.upsample(fea, scale_factor=2, mode='nearest')
         fea = self.upconv4(fea)
-        fea = self.lrelu(fea)
+        fea = self.lrelu(fea)   
         fea = self.HRconv2(fea)
 
-        out = self.conv_last(self.lrelu(fea))
+        #out = self.conv_last(self.lrelu(fea))
 
-        return out
-        '''
+        #return out
+        
         # add bernouli-gamma
         bg_output = self.output_conv(self.lrelu(fea))  # 通过新增的卷积层得到输出
-        rain_prob = torch.sigmoid(bg_output[:, 0, :, :])  # precipitation probability
-        gamma_shape = torch.exp(bg_output[:, 1, :, :])  # shape parameter(gamma distribution)
-        gamma_scale = torch.exp(bg_output[:, 2, :, :])  # scale parameter(gamma distribution)
+        print("bg_output", bg_output.shape)
+        #normal the shape should be [3, 3, 128, 128]
+        #match discrimator should be [3, 1, 128, 128]
+        rain_prob = torch.sigmoid(bg_output[:, 0, :, :]).unsqueeze(1)  # 下雨概率, 形状 [3, 1, 128, 128]
+        gamma_shape = torch.exp(bg_output[:, 1, :, :]).unsqueeze(1)  # gamma shape, 形状 [3, 1, 128, 128]
+        gamma_scale = torch.exp(bg_output[:, 2, :, :]).unsqueeze(1)  # gamma scale, 形状 [3, 1, 128, 128]
 
-        return rain_prob, gamma_shape, gamma_scale'''
+
+        return rain_prob, gamma_shape, gamma_scale
 
 

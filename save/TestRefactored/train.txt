@@ -1,3 +1,169 @@
 Using 4 GPUs!
 Using 4 GPUs!
 Total Dataset: 15776
+Using 4 GPUs!
+Total Dataset: 15776
+Using 4 GPUs!
+Total Dataset: 3944
+Using 4 GPUs!
+Total Dataset: 3944
+Using 4 GPUs!
+Total Dataset: 3944
+Using 4 GPUs!
+Total Dataset: 3944
+Using 4 GPUs!
+Total Dataset: 3944
+Using 4 GPUs!
+Total Dataset: 3944
+Using 4 GPUs!
+Total Dataset: 3944
+Using 4 GPUs!
+Total Dataset: 3944
+Using 4 GPUs!
+Total Dataset: 3944
+Using 4 GPUs!
+Total Dataset: 3944
+Using 4 GPUs!
+Total Dataset: 3944
+Using 4 GPUs!
+Total Dataset: 3944
+Using 4 GPUs!
+Total Dataset: 3944
+Using 4 GPUs!
+Total Dataset: 3944
+Using 4 GPUs!
+Total Dataset: 3944
+Using 4 GPUs!
+Total Dataset: 3944
+Using 4 GPUs!
+Total Dataset: 3944
+Using 4 GPUs!
+Total Dataset: 3944
+Using 4 GPUs!
+Total Dataset: 3944
+Using 4 GPUs!
+Total Dataset: 3944
+Using 4 GPUs!
+Total Dataset: 3944
+Using 4 GPUs!
+Total Dataset: 3944
+Using 4 GPUs!
+Total Dataset: 3944
+Using 4 GPUs!
+Total Dataset: 3944
+Using 4 GPUs!
+Total Dataset: 3944
+Using 4 GPUs!
+Total Dataset: 3944
+Using 4 GPUs!
+Total Dataset: 3944
+Using 4 GPUs!
+Total Dataset: 3944
+Using 4 GPUs!
+Total Dataset: 3944
+Using 4 GPUs!
+Total Dataset: 3944
+Using 4 GPUs!
+Total Dataset: 3944
+Using 4 GPUs!
+Total Dataset: 3944
+Using 4 GPUs!
+Total Dataset: 3944
+Using 4 GPUs!
+Total Dataset: 3944
+Using 4 GPUs!
+Total Dataset: 3944
+Using 4 GPUs!
+Total Dataset: 3944
+Using 4 GPUs!
+Total Dataset: 3944
+Using 4 GPUs!
+Total Dataset: 3944
+Using 4 GPUs!
+Total Dataset: 3944
+Using 4 GPUs!
+Total Dataset: 3944
+Batch 0 completed in 5.537952899932861 seconds
+Using 4 GPUs!
+Total Dataset: 3944
+Batch 0 completed in 4.238522291183472 seconds
+Using 4 GPUs!
+Total Dataset: 3944
+Batch 0 completed in 4.259737730026245 seconds
+Using 4 GPUs!
+Total Dataset: 12190
+Batch 0 completed in 4.203640699386597 seconds
+Using 4 GPUs!
+Total Dataset: 12190
+Batch 0 completed in 4.528733968734741 seconds
+Using 4 GPUs!
+Total Dataset: 12190
+Batch 0 completed in 9.698215246200562 seconds
+Using 4 GPUs!
+Total Dataset: 12190
+Batch 0 completed in 4.62619686126709 seconds
+Using 4 GPUs!
+Total Dataset: 12190
+Batch 0 completed in 4.330655574798584 seconds
+Using 4 GPUs!
+Total Dataset: 12190
+Batch 0 completed in 5.3035149574279785 seconds
+Using 4 GPUs!
+Total Dataset: 12190
+Batch 0 completed in 4.436721324920654 seconds
+Using 4 GPUs!
+Total Dataset: 12190
+Batch 0 completed in 2.514066457748413 seconds
+Using 4 GPUs!
+Total Dataset: 12190
+Batch 0 completed in 4.3941872119903564 seconds
+Using 4 GPUs!
+Total Dataset: 12190
+Batch 0 completed in 3.3961434364318848 seconds
+Using 4 GPUs!
+Total Dataset: 12190
+Batch 0 completed in 4.771353006362915 seconds
+Using 4 GPUs!
+Total Dataset: 12190
+Batch 0 completed in 3.3457491397857666 seconds
+Using 4 GPUs!
+Total Dataset: 12190
+Batch 0 completed in 3.615443229675293 seconds
+Using 4 GPUs!
+Total Dataset: 12190
+Batch 0 completed in 3.342519760131836 seconds
+Using 4 GPUs!
+Total Dataset: 12190
+Batch 0 completed in 4.517764091491699 seconds
+Using 4 GPUs!
+Total Dataset: 12190
+Batch 0 completed in 3.993069648742676 seconds
+Using 4 GPUs!
+Total Dataset: 12190
+Batch 0 completed in 4.088897705078125 seconds
+Using 4 GPUs!
+Total Dataset: 12190
+Batch 0 completed in 3.282604455947876 seconds
+Using 4 GPUs!
+Total Dataset: 12190
+Batch 0 completed in 3.201528549194336 seconds
+RMSE: 31.53389549255371 MAE: 16.556154251098633 for epoch 0 batch 0. Completed in 6.832015514373779 seconds
+Epoch 0 completed in 11.17774510383606 seconds
+Checkpoint saved
+RMSE: 31.439414978027344 MAE: 16.40331268310547 for epoch 0. Completed in 429.39750146865845 seconds
+Checkpoint saved
+Best MAE: 16.40331268310547
+Training completed in 442.9544093608856 seconds
+Using 4 GPUs!
+Total Dataset: 12190
+Batch 0 completed in 3.370015859603882 seconds
+RMSE: 5.955636024475098 MAE: 1.873757004737854 for epoch 0 batch 0. Completed in 7.701288223266602 seconds
+Epoch 0 completed in 12.260864496231079 seconds
+Checkpoint saved
+RMSE: 8.334187507629395 MAE: 2.5582504272460938 for epoch 0. Completed in 437.0112373828888 seconds
+Checkpoint saved
+Best MAE: 2.5582504272460938
+Batch 0 completed in 0.6631515026092529 seconds
+RMSE: 6.197028160095215 MAE: 1.8794941902160645 for epoch 1 batch 0. Completed in 7.666719913482666 seconds
+Epoch 1 completed in 11.22941255569458 seconds
+Checkpoint saved

@@ -68,7 +68,7 @@ for e_num in e_list:
         #ds_total.to_netcdf("/scratch/iu60/xs5813/Processed_data/" + e_num + "/" + file)
         #ds_raw.close()
         try:
-            ds_total.to_netcdf("/scratch/iu60/xs5813/Pqrocessed_data/" + e_num + "/" + file)
+            ds_total.to_netcdf("/scratch/iu60/xs5813/Processed_data/" + e_num + "/" + file)
             ds_raw.close()
         except Exception as e:
             print(f"保存文件时出现错误：{e}")

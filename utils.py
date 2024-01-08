@@ -162,7 +162,8 @@ def date_range(start_date, end_date):
     It returns a list of dates for each date in order starting at the first date and ending with the last date"""
     return [start_date + timedelta(x) for x in range((end_date - start_date).days + 1)]
 
-
+'''在 read_access_data 函数中的应用: 在这个函数中，您使用 dataset.isel(time=leading)['pr'].values 从 ACCESS 数据集中选取了具有特定 leading time 的预测数据。
+这意味着如果 leading 参数为 1，则函数将返回模型启动后第二个时间点（考虑到索引从 0 开始）的预测数据。'''
 class ACCESS_AWAP_GAN(Dataset):
     #这要改
     def __init__(self, start_date, end_date, regin="AUS", lr_transform=None, hr_transform=None, shuffle=True,
@@ -182,12 +183,12 @@ class ACCESS_AWAP_GAN(Dataset):
 
         # Data
         #这里可以改一下
-        self.leading_time_we_use = 3 
-        self.ensemble = ['e01', 'e02', 'e03']
+        self.leading_time_we_use = 1
+        self.ensemble = ['e01','e02','e03']
         self.dates = date_range(start_date, end_date)
 
         if not os.path.exists(self.file_ACCESS_dir):
-            print(self.file_ACCESS_dir + "pr/monthly/")
+            print(self.file_ACCESS_dir + "pr/daily/")
             print("no file or no permission")
         
         self.filename_list = self.get_filename_with_time_order(self.file_ACCESS_dir)
@@ -248,33 +249,24 @@ class ACCESS_AWAP_GAN(Dataset):
 
         lr = read_access_data(self.file_ACCESS_dir, en, access_date, time_leading)
         hr = read_awap_data(self.file_AWAP_dir, awap_date)
-
         return lr, hr, awap_date.strftime("%Y%m%d"), time_leading
 
 
 
 def read_awap_data(root_dir, date_time):
-    """
-        Reads AWAP data from netcdf file, applies preprocessing steps (log1p, scaling) and returns data as numpy array.
 
-        Args: 
-            root_dir (str): root directory of AWAP data
-            date_time (datetime.date): date of AWAP data to be read
-        
-        Returns:
-            var (np.ndarray): numpy array of AWAP data
-    """
-
-    # Get the filename of the netcdf file
-    filename = root_dir + date_time.strftime("%Y-%m") + ".nc"
+    filename = root_dir + date_time.strftime("%Y-%m-%d") + ".nc"
     dataset = xr.open_dataset(filename)
     
-    var = dataset['precip'].values
+    var = dataset['pr'].values
+    #print("AWAP data shape (before processing):", var.shape)
+    #这里除以4是干啥
     var = (np.log1p(var)) / 4 # log1p(x) to fix skew in distribution, /4 to scale roughly to [0,1]
     var = var[np.newaxis, :, :].astype(np.float32)  # CxLATxLON
+    
     dataset.close()
-
     return var
+
 
 
 def read_access_data(root_dir, en, date_time, leading):
@@ -297,9 +289,33 @@ def read_access_data(root_dir, en, date_time, leading):
 
     # rescale to [0,1]
     var = dataset.isel(time=leading)['pr'].values
+    #print("ACCESS data shape (before processing):", var.shape)
     var = (np.log1p(var)) / 4 # log1p(x) to fix skew in distribution, /4 to scale roughly to [0,1]
     
     var = var[np.newaxis, :, :].astype(np.float32)  # CxLATxLON
 
     dataset.close()
     return var
+
+'''def read_awap_data(root_dir, date_time):
+    """
+        Reads AWAP data from netcdf file, applies preprocessing steps (log1p, scaling) and returns data as numpy array.
+
+        Args: 
+            root_dir (str): root directory of AWAP data
+            date_time (datetime.date): date of AWAP data to be read
+        
+        Returns:
+            var (np.ndarray): numpy array of AWAP data
+    """
+
+    # Get the filename of the netcdf file
+    filename = root_dir + date_time.strftime("%Y-%m") + ".nc"
+    dataset = xr.open_dataset(filename)
+    
+    var = dataset['precip'].values
+    var = (np.log1p(var)) / 4 # log1p(x) to fix skew in distribution, /4 to scale roughly to [0,1]
+    var = var[np.newaxis, :, :].astype(np.float32)  # CxLATxLON
+    dataset.close()
+
+    return var'''

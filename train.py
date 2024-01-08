@@ -1,4 +1,12 @@
 # Imports 
+'''
+如果你的目标是使用这个GAN进行降雨预测，你的训练循环可能看起来是这样的：
+
+生成器阶段：生成器接受低分辨率的气象数据，输出降雨概率和伽马分布参数的估计值。
+判别器阶段：判别器接受生成器的输出和真实的高分辨率降雨数据，然后被训练以区分两者。
+损失计算和优化：计算生成器和判别器的损失，并更新它们的参数。
+记住，对于GANs的训练，平衡生成器和判别器的性能是至关重要的。
+'''
 import os
 import torch
 import torch.nn as nn
@@ -28,7 +36,7 @@ UPSCALE = 8  # upscaling factor 40km->5km
 NB_BATCH = 3  # mini-batch
 NB_Iteration = 10 # Number of iterations (epochs)
 #PATCH_SIZE = 576  # Training patch size
-PATCH_SIZE = 128
+PATCH_SIZE = 256
 NB_THREADS = 36
 
 START_ITER = 0  # Set 0 for from scratch, else will load saved params and trains further
@@ -177,8 +185,7 @@ def get_patches(batch, lr, hr, patch_size, scaling_factor):
             lr: cropped lr image
             hr: cropped hr image
     """
-
-    # Get random x, y co-ordinates to crop the image
+    '''    # Get random x, y co-ordinates to crop the image
     np.random.seed(batch)
     hh = np.random.randint(0, 688 - patch_size + 1)
     hw = np.random.randint(0, 880 - patch_size + 1)
@@ -187,7 +194,26 @@ def get_patches(batch, lr, hr, patch_size, scaling_factor):
     hr = hr[:, :, hh:(hh + patch_size), hw:(hw + patch_size)]
     lr = lr[:, :, int(hh / scaling_factor):int((hh + patch_size) / scaling_factor), int(hw / scaling_factor):int((hw + patch_size) / scaling_factor)]
     
+    return lr, hr'''
+    np.random.seed(batch)
+    # 确保随机坐标加上补丁尺寸不会超出边界
+    max_hh = min(lr.shape[2] * scaling_factor, hr.shape[2]) - patch_size
+    max_hw = min(lr.shape[3] * scaling_factor, hr.shape[3]) - patch_size
+
+    hh = np.random.randint(0, max_hh + 1)
+    hw = np.random.randint(0, max_hw + 1)
+
+    hr = hr[:, :, hh:(hh + patch_size), hw:(hw + patch_size)]
+    lr = lr[:, :, int(hh / scaling_factor):int((hh + patch_size) / scaling_factor), int(hw / scaling_factor):int((hw + patch_size) / scaling_factor)]
+
     return lr, hr
+''''''
+def generate_sample(rain_prob, gamma_shape, gamma_scale):
+    # 生成一个样本估计值
+    rain_sample = torch.zeros_like(rain_prob)
+    rain_mask = torch.bernoulli(rain_prob)  # 根据降雨概率生成一个掩码
+    rain_sample[rain_mask.bool()] = torch.distributions.Gamma(gamma_shape, gamma_scale).sample()[rain_mask.bool()]
+    return rain_sample
 
 def discriminator_loss(model_G, model_D, batch_L, batch_H):
     """
@@ -202,10 +228,12 @@ def discriminator_loss(model_G, model_D, batch_L, batch_H):
         Returns:
             loss_D: discriminator loss
     """
-    
     # Get super-resolved batch (G(lr) ~ hr)
-    batch_S = model_G(batch_L).detach()
-
+    #batch_S = model_G(batch_L)
+    # 获取生成器的输出
+    rain_prob, gamma_shape, gamma_scale = model_G(batch_L)
+    # 生成样本估计值
+    batch_S = generate_sample(rain_prob, gamma_shape, gamma_scale)
     # Run the hr, and predicted sr images through the discriminator
     e_S, d_S, _, _ = model_D(batch_S)
     e_H, d_H, _, _ = model_D(batch_H)
@@ -244,7 +272,7 @@ def discriminator_iteration(model_G, model_D, opt_G, opt_D, lr, hr) -> None:
             lr: batch of lr images
             hr: batch of hr images
     """
-        
+    
     # Get data as cuda variables
     batch_L = Variable(lr).cuda()
     batch_H = Variable(hr).cuda()
@@ -275,7 +303,11 @@ def generator_loss(model_G, model_D, batch_L, batch_H):
     """
     
     # Get super-resolved batch (G(lr) ~ hr)
-    batch_S = model_G(batch_L)
+    #batch_S = model_G(batch_L)
+       # 获取生成器的输出
+    rain_prob, gamma_shape, gamma_scale = model_G(batch_L)
+    # 生成样本估计值
+    batch_S = generate_sample(rain_prob, gamma_shape, gamma_scale)
 
     # Run the hr, and predicted sr images through the discriminator
     e_S, d_S, _, _ = model_D(batch_S)
@@ -324,18 +356,17 @@ def generator_iteration(model_G, model_D, opt_G, opt_D, lr, hr) -> None:
 
 def get_performance(model_G, dataloader, epoch, batch=-1):
     """
-        Test the model on the test dataset.
+    Test the model on the test dataset.
 
-        Args:
-            model_G: generator model
-            dataloader: test dataloader
-            epoch: current epoch (used for logging)
-            batch: current batch (used for logging)
+    Args:
+        model_G: generator model
+        dataloader: test dataloader
+        epoch: current epoch (used for logging)
+        batch: current batch (used for logging)
 
-
-        Returns:
-            rmse: average rmse
-            mae: average mae
+    Returns:
+        rmse: average rmse
+        mae: average mae
     """
     itr_test_time = time.time()
 
@@ -345,45 +376,54 @@ def get_performance(model_G, dataloader, epoch, batch=-1):
         # Set models to eval mode
         model_G.eval()
         
-        # Test for validation nc
+        # Test for validation
         rmses = []
-        mae = []
+        maes = []
 
         # Load test image
         for lr_val, hr_val, _, _ in dataloader:
+            print(f"LR shape: {lr_val.shape}, HR shape: {hr_val.shape}") 
             batch_H = np.asarray(hr_val).astype(np.float32)
             batch_L = np.asarray(lr_val).astype(np.float32)
 
-            # Data
+            # Convert to torch.Tensor
             batch_L = Variable(torch.from_numpy(batch_L)).cuda()
             batch_L = torch.clamp(batch_L, 0., 1.)
 
-            # Forward
-            batch_Out = model_G(batch_L)
+            # Forward pass through generator
+            rain_prob, gamma_shape, gamma_scale = model_G(batch_L)
 
-            # Output
-            batch_Out = batch_Out.cpu().data.numpy()
-            batch_Out = np.clip(batch_Out, 0., 1.)  # BXCxHxW 16*1*688*880
-            batch_Out = np.squeeze(batch_Out)  # 16*688*880
-
-            batch_Out = np.transpose(batch_Out, [1, 2, 0])
-            batch_Out = cv2.resize(batch_Out, (886, 691), interpolation=cv2.INTER_CUBIC) # Scale to same proportion as original image
-            batch_Out = np.transpose(batch_Out, [2, 0, 1])
-
+            # Generate sample estimate from the distribution
+            batch_Out = generate_sample(rain_prob, gamma_shape, gamma_scale).cpu().data.numpy()
+            batch_Out = np.clip(batch_Out, 0., 1.)
+            print("batch_out shape before squeeze:", batch_Out.shape)
+            # Process output and ground truth for metric calculation
+            batch_Out = np.squeeze(batch_Out, axis = 1)
+            print("batch_out shape after squeeze:", batch_Out.shape)
+            #batch_Out = np.transpose(batch_Out, [1, 2, 0])
+            batch_Out = batch_Out.transpose(1, 2, 0) # 688*880*16
+            print("batch_out after transpose:", batch_Out.shape)
+            batch_Out = cv2.resize(batch_Out, (366, 381), interpolation=cv2.INTER_CUBIC)
+            if len(batch_Out.shape) == 2:
+                batch_Out = batch_Out.reshape(batch_Out.shape[0], batch_Out.shape[1], 1)
+            #batch_Out = np.transpose(batch_Out, [2, 0, 1])
+            batch_Out = batch_Out.transpose(2, 0, 1)
+            print('The final batch_out: ', batch_Out.shape)
+            print('The final batch_H: ', batch_H.shape)
             img_gt = np.squeeze(batch_H)
-            img_gt = np.expm1(img_gt * 4)
-            img_target = np.expm1(batch_Out * 4)
+            img_gt = np.expm1(img_gt * 4)  # Revert preprocessing on ground truth
+            img_target = np.expm1(batch_Out * 4)  # Revert preprocessing on prediction
 
             rmses.append(RMSE(img_gt, img_target, 0))
-            mae.append(MAE(img_gt, img_target, 0))
+            maes.append(MAE(img_gt, img_target, 0))
             
-        
         rmse = np.mean(np.asarray(rmses))
-        mae = np.mean(np.asarray(mae))
+        mae = np.mean(np.asarray(maes))
         
         write_log(f"RMSE: {rmse} MAE: {mae} for epoch {epoch}{f' batch {batch}' if batch != -1 else ''}. Completed in {time.time() - itr_test_time} seconds")
 
         return rmse, mae
+
 
 def train_GAN(model_G, model_D, opt_G, opt_D, train_dataloders, val_dataloders, test_dataloders, nb_epoch):
     """
@@ -406,6 +446,7 @@ def train_GAN(model_G, model_D, opt_G, opt_D, train_dataloders, val_dataloders, 
 
     ### TRAINING
     for epoch in range(nb_epoch):
+        print("epoch right now:", epoch)
 
         epoch_start_time = time.time()
 
@@ -418,6 +459,10 @@ def train_GAN(model_G, model_D, opt_G, opt_D, train_dataloders, val_dataloders, 
 
             # Get patches for training
             lr, hr = get_patches(batch_number, lr, hr, PATCH_SIZE, UPSCALE)
+            '''
+            Post-patch LR shape: torch.Size([3, 1, 32, 32])
+            Post-patch HR shape: torch.Size([3, 1, 256, 256])
+            '''
 
             # Train discriminator then generator
             discriminator_iteration(model_G, model_D, opt_G, opt_D, lr, hr)
@@ -430,6 +475,7 @@ def train_GAN(model_G, model_D, opt_G, opt_D, train_dataloders, val_dataloders, 
 
             # Test the performance per 10 iterations
             if batch_number % 10 == 0:
+                print("start get the performance")
                 get_performance(model_G, test_dataloders, epoch, batch_number)
                 break
                 
@@ -441,6 +487,7 @@ def train_GAN(model_G, model_D, opt_G, opt_D, train_dataloders, val_dataloders, 
         SaveCheckpoint(epoch, model_G, model_D, opt_G, opt_D)
 
         # Validate model
+        print("start get validation the performance")
         val_rmse, val_mae = get_performance(model_G, val_dataloders, epoch)
 
 
@@ -450,8 +497,6 @@ def train_GAN(model_G, model_D, opt_G, opt_D, train_dataloders, val_dataloders, 
             SaveCheckpoint(epoch, model_G, model_D, opt_G, opt_D, best=True)
         
         write_log(f"Best MAE: {best_avg_mae}")
-
-        break
 
     write_log(f"Training completed in {time.time() - training_start_time} seconds")
     

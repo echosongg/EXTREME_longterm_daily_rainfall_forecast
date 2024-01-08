@@ -84,6 +84,13 @@ class UnetD(torch.nn.Module):
         super(UnetD, self).__init__()
 
         self.enc_b1 = DBlock(1, 64, preactivation=False)
+
+        
+        # 为生成器输出定义的DBlock，处理三通道输入
+        #self.enc_b1_gen = DBlock(3, 64, preactivation=False)
+        # 为真实图像定义的DBlock，处理单通道输入
+        #self.enc_b1_real = DBlock(1, 64, preactivation=False)
+        ''''''
         self.enc_b2 = DBlock(64, 128)
         self.enc_b3 = DBlock(128, 192)
         self.enc_b4 = DBlock(192, 256)
@@ -111,8 +118,20 @@ class UnetD(torch.nn.Module):
             elif classname.find('bn') != -1:
                 m.weight.data.normal_(1.0, 0.02)
                 m.bias.data.fill_(0)
+        '''        # Init weights
+        for m in self.modules():
+            classname = m.__class__.__name__
+            if classname.find('Conv') != -1:
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='leaky_relu')
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+            elif classname.find('BatchNorm') != -1:
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)'''
 
     def forward(self, x):
+        print("x shape", x.shape)
+        #x shape torch.Size([3, 128, 128])
         e1 = self.enc_b1(x)
         e2 = self.enc_b2(e1)
         e3 = self.enc_b3(e2)
@@ -120,6 +139,7 @@ class UnetD(torch.nn.Module):
         e5 = self.enc_b5(e4)
         e6 = self.enc_b6(e5)
         e_out = self.enc_out(F.leaky_relu(e6, 0.1))
+
 
         d1 = self.dec_b1(e6)
         d2 = self.dec_b2(torch.cat([d1, e5], 1))
@@ -131,6 +151,3 @@ class UnetD(torch.nn.Module):
         d_out = self.dec_out(F.leaky_relu(d6, 0.1))
 
         return e_out, d_out, [e1, e2, e3, e4, e5, e6], [d1, d2, d3, d4, d5, d6]
-
-
-
