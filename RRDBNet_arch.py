@@ -79,7 +79,7 @@ class RRDBNetx4x2(nn.Module):
         
         ####
                 # 新增的贝努利-伽马输出层
-        self.output_conv = nn.Conv2d(nf, 3, 3, 1, 1, bias=True)  # 输出3个通道：1个降雨概率，2个伽马参数
+        self.output_conv = nn.Conv2d(nf, out_nc, 3, 1, 1, bias=True)  # 输出3个通道：1个降雨概率，2个伽马参数
 
         # LeakyReLU 激活函数
         self.lrelu = nn.LeakyReLU(negative_slope=0.2, inplace=True)

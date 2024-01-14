@@ -171,30 +171,7 @@ def cutmix(batch_S_CutMix, batch_H, d_S, d_H):
     return loss_D_Cons + loss_D_Enc_S + loss_D_Dec_S
 
 def get_patches(batch, lr, hr, patch_size, scaling_factor):
-    """
-        Given an input lr and hr image, randomly crop a patch of size patch_size x patch_size from it. scaling factor is used to ensure the same patch is cropped from both lr and hr images.
 
-        Args:
-            batch: batch number
-            lr: low resolution image
-            hr: high resolution image
-            patch_size: size of the patch to be cropped
-            scaling_factor: scaling factor used to downsample the hr image to get the lr image
-
-        Returns:
-            lr: cropped lr image
-            hr: cropped hr image
-    """
-    '''    # Get random x, y co-ordinates to crop the image
-    np.random.seed(batch)
-    hh = np.random.randint(0, 688 - patch_size + 1)
-    hw = np.random.randint(0, 880 - patch_size + 1)
-
-    # Crop hr and lr images to get the patch
-    hr = hr[:, :, hh:(hh + patch_size), hw:(hw + patch_size)]
-    lr = lr[:, :, int(hh / scaling_factor):int((hh + patch_size) / scaling_factor), int(hw / scaling_factor):int((hw + patch_size) / scaling_factor)]
-    
-    return lr, hr'''
     np.random.seed(batch)
     # 确保随机坐标加上补丁尺寸不会超出边界
     max_hh = min(lr.shape[2] * scaling_factor, hr.shape[2]) - patch_size
@@ -396,13 +373,11 @@ def get_performance(model_G, dataloader, epoch, batch=-1):
             # Generate sample estimate from the distribution
             batch_Out = generate_sample(rain_prob, gamma_shape, gamma_scale).cpu().data.numpy()
             batch_Out = np.clip(batch_Out, 0., 1.)
-            print("batch_out shape before squeeze:", batch_Out.shape)
             # Process output and ground truth for metric calculation
             batch_Out = np.squeeze(batch_Out, axis = 1)
-            print("batch_out shape after squeeze:", batch_Out.shape)
             #batch_Out = np.transpose(batch_Out, [1, 2, 0])
             batch_Out = batch_Out.transpose(1, 2, 0) # 688*880*16
-            print("batch_out after transpose:", batch_Out.shape)
+
             batch_Out = cv2.resize(batch_Out, (366, 381), interpolation=cv2.INTER_CUBIC)
             if len(batch_Out.shape) == 2:
                 batch_Out = batch_Out.reshape(batch_Out.shape[0], batch_Out.shape[1], 1)
@@ -505,7 +480,7 @@ if __name__ == "__main__":
     prepare_directories()
 
     ### Generator ###
-    model_G = G_arch.RRDBNetx4x2(1, 1, 64, 23, gc=32).cuda()
+    model_G = G_arch.RRDBNetx4x2(1, 3, 64, 23, gc=32).cuda()
     if torch.cuda.device_count() > 1:
         write_log("Using " + str(torch.cuda.device_count()) + " GPUs!")
         model_G = nn.DataParallel(model_G, range(torch.cuda.device_count()))
