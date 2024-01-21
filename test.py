@@ -20,8 +20,8 @@ TEST_SAVE_PREFIX = "/scratch/iu60/xs5813/TestResults/"
 MODEL_PREFIX = SAVE_PREFIX + "DESRGAN/checkpoint/" + "v" 
 TESTING_DATA = "/scratch/iu60/xs5813/Processed_data/e*/*.nc"
 
-australia_lon_range = (138, 156.275)
-australia_lat_range = (-29, -9.975)
+australia_lon_range = (143,  153.5)
+australia_lat_range = (-32, -24)
 
 def make_directories(model_name: str, version:str) -> None:
     """
@@ -37,9 +37,17 @@ def make_directories(model_name: str, version:str) -> None:
         mkdir(TEST_SAVE_PREFIX + "DESRGAN"+ "/" + "v" + version)
     if not isdir(TEST_SAVE_PREFIX + "DESRGAN"+ "/" + "v" + version + "/" + model_name.split(".")[0]):
         mkdir(TEST_SAVE_PREFIX + "DESRGAN"+ "/" + "v" + version + "/" + model_name.split(".")[0])
-    for en in ["e01", "e02", "e03"]:
+    #for en in ["e01", "e02", "e03"]:
+    for en in ["e01"]:
         if not isdir(TEST_SAVE_PREFIX + "DESRGAN" + "/" + "v" + version + "/" + model_name.split(".")[0] + "/" + en):
             mkdir(TEST_SAVE_PREFIX + "DESRGAN" + "/" + "v" + version + "/" + model_name.split(".")[0] + "/" + en)
+
+def generate_sample(rain_prob, gamma_shape, gamma_scale):
+    # 生成一个样本估计值
+    rain_sample = torch.zeros_like(rain_prob)
+    rain_mask = torch.bernoulli(rain_prob)  # 根据降雨概率生成一个掩码
+    rain_sample[rain_mask.bool()] = torch.distributions.Gamma(gamma_shape, gamma_scale).sample()[rain_mask.bool()]
+    return rain_sample
 
 def generate_batch(model_G, da_selected):
     """
@@ -59,12 +67,15 @@ def generate_batch(model_G, da_selected):
     batch_input = Variable(torch.from_numpy(da_tensor)).cuda()
 
     # Run model
-    slice_output = model_G(batch_input)
+    #slice_output = model_G(batch_input)
+    rain_prob, gamma_shape, gamma_scale = model_G(batch_input)
+
+    slice_output = generate_sample(rain_prob, gamma_shape, gamma_scale)
 
     # Resize and convert back to DataArray
     slice_output = slice_output.cpu().data.numpy()
     slice_output = np.clip(slice_output[0], 0., 1.)
-    slice_output = cv2.resize(np.squeeze(slice_output), (886, 691), interpolation=cv2.INTER_CUBIC)
+    slice_output = cv2.resize(np.squeeze(slice_output), (366, 381), interpolation=cv2.INTER_CUBIC)
     slice_output = np.clip(slice_output, 0, 1)
     
     return slice_output
@@ -101,6 +112,9 @@ def resize_data(data, time_value):
     new_shape = (366,381)  # Target width and height
     resized_values = np.asarray(data).astype(np.float32)
     resized_values = cv2.resize(resized_values, new_shape, interpolation=cv2.INTER_CUBIC)
+    if not isinstance(time_value, np.datetime64):
+        # 尝试将其转换为 np.datetime64
+        time_value = np.datetime64(time_value)
 
     # Create new coordinates for the resized data array
     coords = {
@@ -140,6 +154,7 @@ def test_model(model_G_name: str, version: str, year: int) -> None:
     # Get all files in the given year for all ensemble
     testing_data = glob.glob(TESTING_DATA)
     testing_data = [f for f in testing_data if str(year) in f]
+
     np.random.shuffle(testing_data)
 
 
@@ -150,15 +165,23 @@ def test_model(model_G_name: str, version: str, year: int) -> None:
             en = fn.split("/")[-2]
             startdate = fn.split("/")[-1].split("_")[0].split(".")[0]
             savepath = TEST_SAVE_PREFIX + "DESRGAN/v" + version + "/"  + model_G_name + "/" + en + "/" + startdate + ".nc"
+            
+            save_dir = os.path.dirname(savepath)
+            if not os.path.exists(save_dir):
+                os.makedirs(save_dir, exist_ok=True)
 
             # Skip if already exists
             if os.path.exists(savepath):
                 print(f"Already exists: {savepath}")
                 continue
-
+            print("fn")
+            print(fn)
+            #/scratch/iu60/xs5813/Processed_data/e05/2002-01-31.nc
+            #save path 
+            #/scratch/iu60/xs5813/TestResults/DESRGAN/vTestRefactored/model_G_i000005/e05/2002-01-31.nc'
             # Get raw data and preprocess
             ds_raw = xr.open_dataset(fn)
-            ds_preprocessed = ds_raw.map(np.log1p) / 4  
+            ds_preprocessed = ds_raw.map(np.log1p) / 7
             
             ds_total = []
             for time_value in ds_raw['time'].values:
@@ -186,7 +209,7 @@ def test_model(model_G_name: str, version: str, year: int) -> None:
 if __name__ == "__main__":
 
     #model_G_name = f"model_G_i0000{str(9).zfill(2)}"
-    model_G_name = "model_G_i000007_best"
+    model_G_name = "model_G_i000004_best"
     #version = "TrainingIterationRMSETest"
     version = "TestRefactored"
 

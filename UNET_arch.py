@@ -80,17 +80,15 @@ class GBlock(nn.Module):
         return h 
 
 class UnetD(torch.nn.Module):
-    def __init__(self):
+    def __init__(self, in_channels_gen=3, in_channels_real=1, base_nf=64):
+    #def __init__(self):
         super(UnetD, self).__init__()
 
-        self.enc_b1 = DBlock(1, 64, preactivation=False)
+        #for generator output, 3
+        #for ground truth 1
+        self.enc_b1_gen = DBlock(in_channels_gen, base_nf, preactivation=False)
+        self.enc_b1_real = DBlock(in_channels_real, base_nf, preactivation=False)
 
-        
-        # 为生成器输出定义的DBlock，处理三通道输入
-        #self.enc_b1_gen = DBlock(3, 64, preactivation=False)
-        # 为真实图像定义的DBlock，处理单通道输入
-        #self.enc_b1_real = DBlock(1, 64, preactivation=False)
-        ''''''
         self.enc_b2 = DBlock(64, 128)
         self.enc_b3 = DBlock(128, 192)
         self.enc_b4 = DBlock(192, 256)
@@ -118,21 +116,19 @@ class UnetD(torch.nn.Module):
             elif classname.find('bn') != -1:
                 m.weight.data.normal_(1.0, 0.02)
                 m.bias.data.fill_(0)
-        '''        # Init weights
-        for m in self.modules():
-            classname = m.__class__.__name__
-            if classname.find('Conv') != -1:
-                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='leaky_relu')
-                if m.bias is not None:
-                    nn.init.constant_(m.bias, 0)
-            elif classname.find('BatchNorm') != -1:
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)'''
 
-    def forward(self, x):
-        print("x shape", x.shape)
+    #def forward(self, x):
+    def forward(self, x_real, rain_prob, gamma_shape, gamma_scale):
+        e1 = None
+        if x_real is not None:
+            e1 = self.enc_b1_real(x_real)
+        else:
+           x_gen = torch.cat([rain_prob, gamma_shape, gamma_scale], dim=1)
+           e1 = self.enc_b1_gen(x_gen)
+        
+        #print("x shape", x.shape)
         #x shape torch.Size([3, 128, 128])
-        e1 = self.enc_b1(x)
+        #e1 = self.enc_b1(x)
         e2 = self.enc_b2(e1)
         e3 = self.enc_b3(e2)
         e4 = self.enc_b4(e3)

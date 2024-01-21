@@ -8,29 +8,6 @@ import numpy as np
 data_directory = "/g/data/zv2/agcd/v1/precip/total/r005/01day"
 output_directory = "/scratch/iu60/xs5813/Awap_pre_data/"
 
-def get_days_in_month(date:str) -> int:
-    """
-    Returns the number of days in the specified month.
-
-    Parameters:
-    - date (str): The date in the format 'YYYY-MM'.                 
-
-    Returns:
-    - int: The number of days in the specified month.
-    """
-    def year_is_leap(year: str):
-                year = int(year)
-                return year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)
-
-    year, month = date.split('-')
-    if month in ['01', '03', '05', '07', '08', '10', '12']:
-        return 31
-    elif month in ['04', '06', '09', '11']:
-        return 30
-    elif year_is_leap(year):
-        return 29
-    else:
-        return 28 
 
 def main():
 
@@ -51,6 +28,7 @@ def main():
             
             # Select the 'precip' data for the current time and apply geographic selection and resizing
             da_raw = ds_raw.sel(time=time_value)['precip'] #/ get_days_in_month(f"{leading_year}-{leading_month}") # Average daily rainfall
+            
             da_selected = select_data(da_raw)
 
        

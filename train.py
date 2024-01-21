@@ -19,7 +19,7 @@ from os import mkdir
 from os.path import isdir
 from torch.utils.data import random_split, DataLoader
 from datetime import date
-from utils import Huber, ACCESS_AWAP_GAN, RMSE, MAE
+from utils import Huber, ACCESS_AWAP_GAN, RMSE, MAE, log_loss
 import cv2
 import RRDBNet_arch as G_arch
 import UNET_arch as D_arch
@@ -44,6 +44,9 @@ START_ITER = 0  # Set 0 for from scratch, else will load saved params and trains
 L_ADV = 1e-3  # Scaling params for the Adv loss
 L_FM = 1  # Scaling params for the feature matching loss
 L_LPIPS = 1e-3  # Scaling params for the LPIPS loss
+#add gamma loss and CRPS loss
+L_GAMMA = 0
+L_CRPS = 0
 
 LR_G = 1e-5  # Learning rate for the generator
 LR_D = 1e-5  # Learning rate for the discriminator
@@ -160,7 +163,7 @@ def cutmix(batch_S_CutMix, batch_H, d_S, d_H):
     bbx1, bby1, bbx2, bby2 = rand_bbox(batch_S_CutMix.size(), r_mix)
     batch_S_CutMix[:, :, bbx1:bbx2, bby1:bby2] = batch_H[:, :, bbx1:bbx2, bby1:bby2]
 
-    e_mix, d_mix, _, _ = model_D(batch_S_CutMix)
+    e_mix, d_mix, _, _ = model_D(batch_S_CutMix, None, None, None)
 
     loss_D_Enc_S = torch.nn.ReLU()(1.0 + e_mix).mean()
     loss_D_Dec_S = torch.nn.ReLU()(1.0 + d_mix).mean()
@@ -212,8 +215,8 @@ def discriminator_loss(model_G, model_D, batch_L, batch_H):
     # 生成样本估计值
     batch_S = generate_sample(rain_prob, gamma_shape, gamma_scale)
     # Run the hr, and predicted sr images through the discriminator
-    e_S, d_S, _, _ = model_D(batch_S)
-    e_H, d_H, _, _ = model_D(batch_H)
+    e_S, d_S, _, _ = model_D(None, rain_prob, gamma_shape, gamma_scale)
+    e_H, d_H, _, _ = model_D(batch_H, None, None, None)
 
     # D Loss, for encoder end and decoder end
     loss_D_Enc_S = torch.nn.ReLU()(1.0 + e_S).mean()
@@ -287,11 +290,13 @@ def generator_loss(model_G, model_D, batch_L, batch_H):
     batch_S = generate_sample(rain_prob, gamma_shape, gamma_scale)
 
     # Run the hr, and predicted sr images through the discriminator
-    e_S, d_S, _, _ = model_D(batch_S)
+    e_S, d_S, _, _ = model_D(batch_S, None, None, None)
 
     # Pixel loss
     loss_Pixel = Huber(batch_S, batch_H)
     loss_G = loss_Pixel
+    #log loss, ground truth and gamma distribution
+    #loss_Log = log_loss(batch_H, rain_prob, gamma_shape, gamma_scale)
 
     # GAN losses
     loss_Advs = []
@@ -383,11 +388,9 @@ def get_performance(model_G, dataloader, epoch, batch=-1):
                 batch_Out = batch_Out.reshape(batch_Out.shape[0], batch_Out.shape[1], 1)
             #batch_Out = np.transpose(batch_Out, [2, 0, 1])
             batch_Out = batch_Out.transpose(2, 0, 1)
-            print('The final batch_out: ', batch_Out.shape)
-            print('The final batch_H: ', batch_H.shape)
             img_gt = np.squeeze(batch_H)
-            img_gt = np.expm1(img_gt * 4)  # Revert preprocessing on ground truth
-            img_target = np.expm1(batch_Out * 4)  # Revert preprocessing on prediction
+            img_gt = np.expm1(img_gt * 7)  # Revert preprocessing on ground truth
+            img_target = np.expm1(batch_Out * 7)  # Revert preprocessing on prediction
 
             rmses.append(RMSE(img_gt, img_target, 0))
             maes.append(MAE(img_gt, img_target, 0))

@@ -9,11 +9,11 @@ import cv2
 #纬度范围：大约从南纬 29 度到南纬 10.5 度。
 #lon_range = (111.975,  156.275)
 #lat_range = (-44.525, -9.975)
-lon_range = (138,  156.275)
-lat_range = (-29, -9.975)
+lon_range = (143,  153.7)
+lat_range = (-32, -24)
+#lon_range = (138,  156.275)
+#lat_range = (-29, -9.975)
 scale = 1.5
-
-
 
 def select_data(da, lon_range=lon_range, lat_range=lat_range):
     """
@@ -65,7 +65,6 @@ def resize_data(data, time_value):
 
     # Create a new DataArray and return
     return xr.DataArray(resized_values, dims=("lat", "lon"), coords=coords, name='pr') 
-
 
 
 

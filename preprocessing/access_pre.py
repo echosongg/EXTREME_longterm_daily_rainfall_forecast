@@ -7,7 +7,8 @@ import cv2
 
 
 # Define the ensemble models and directories
-ensemble = ["e07","e08", "e09"]
+ensemble = ["e01","e02", "e03"]
+print("ensemble",ensemble)
 input_directory = "/g/data/ux62/access-s2/hindcast/raw_model/atmos/pr/daily/"
 output_directory = "/scratch/iu60/xs5813/Processed_data/"
 
@@ -63,4 +64,10 @@ if __name__ == "__main__":
 
     # Preprocess the data
     main()
+
+'''
+ACCESS的structure:
+The pr's cooridinate is lon, lat and time.
+Time in original file means initial time, and it will contain many other time(200+)
+'''
 

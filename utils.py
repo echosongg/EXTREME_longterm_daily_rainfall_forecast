@@ -64,6 +64,33 @@ def MAE(y_true, y_pred, shave_border=4):
 
     return mae
 
+def log_loss(batch_H, p_pred, alpha_pred, beta_pred, epsilon=1e-6):
+    """
+    计算伯努利-伽马分布的log-likelihood损失函数。
+
+    Args:
+        batch_H: 真实的降雨数据。
+        p_pred: 神经网络预测的降雨发生概率。
+        alpha_pred: 预测的伽马分布形状参数。
+        beta_pred: 预测的伽马分布尺度参数。
+        epsilon: 用于数值稳定性的小量。
+
+    Returns:
+        计算得到的损失。
+    """
+    #change it to array
+    batch_H = np.array(batch_H.cpu(), dtype=np.float32)
+    p_pred = np.array(p_pred.cpu(), dtype=np.float32)
+    lpha_pred = np.array(lpha_pred.cpu(), dtype=np.float32)
+    beta_pred = np.array(beta_pred.cpu(), dtype=np.float32)
+
+    p_true = (batch_H > 0).float()  # 将batch_H转换为二元降雨变量
+    term1 = (1 - p_true) * torch.log(1 - p_pred + epsilon)
+    term2 = p_true * (torch.log(p_pred + epsilon) + (alpha_pred - 1) * torch.log(batch_H + epsilon) + alpha_pred * torch.log(beta_pred + epsilon) - torch.lgamma(alpha_pred + epsilon) - batch_H / (beta_pred + epsilon))
+    loss = term1 + term2
+    return -torch.mean(loss)
+
+
 def CRPS(y_true, y_pred, shave_border=4):
     '''
         Input must be 0-255, 2D
@@ -102,60 +129,6 @@ def im2tensor(image, imtype=np.uint8, cent=1., factor=255. / 2.):
                         [:, :, :, np.newaxis].transpose((3, 2, 0, 1)))
 
 
-def days_in_month(month: int, year: int) -> int:
-        """
-        Returns the number of days in the specified month.
-
-        Parameters:
-        - month (int): The month.
-        - year (int): The year.
-
-        Returns:
-        - int: The number of days in the specified month.
-        """
-        if month in [1, 3, 5, 7, 8, 10, 12]:
-            return 31
-        elif month in [4, 6, 9, 11]:
-            return 30
-        elif year % 4 == 0 and (year % 100 != 0 or year % 400 == 0): # Leap year
-            return 29
-        else:
-            return 28
-
-def increment_months(datetime: str, leadtime: int) -> str:
-    """
-    Increments the specified date by one month.
-
-    Parameters:
-    - datetime (str): The date in the format 'YYYY-MM-DD'.
-    - leadtime (int): The number of months to increment by.
-
-    Returns:
-    - str: The incremented date in the format 'YYYY-MM-DD'.
-    """
-    # Get the year, month and day
-    year, month, day = datetime.split('-')
-    year = int(year)
-    month = int(month)
-    day = int(day)
-
-    # Increment month
-    new_month = month + leadtime
-    if new_month > 12:
-        year += 1
-        new_month -= 12
-
-    # Day can be 1, 6, 11, 16, 21 or the last 8 days of the month 
-    # To account for months having a different number of days we remap the day
-    # We map 1 -> 1, 6 -> 6, 11 -> 11, 16 -> 16, 21 -> 21 and then ith last day of old month -> ith last day of new month
-    if day > 21:
-        day_offset = days_in_month(month, year) - day
-        new_day = days_in_month(new_month, year) - day_offset
-    else:
-        new_day = day
-
-    return f"{year}-{str(new_month).zfill(2)}-{str(new_day).zfill(2)}"
-
 
 def date_range(start_date, end_date):
     """This function takes a start date and an end date as datetime date objects.
@@ -170,6 +143,8 @@ class ACCESS_AWAP_GAN(Dataset):
                  access_dir = "/scratch/iu60/xs5813/Processed_data/",
                     awap_dir = "/scratch/iu60/xs5813/Awap_pre_data/"):
         # Data locations
+        print("=> ACCESS_S1 & AWAP loading")
+        print("=> from " + start_date.strftime("%Y/%m/%d") + " to " + end_date.strftime("%Y/%m/%d") + "")
         self.file_ACCESS_dir = access_dir 
         self.file_AWAP_dir = awap_dir
 
@@ -184,7 +159,7 @@ class ACCESS_AWAP_GAN(Dataset):
         # Data
         #这里可以改一下
         self.leading_time_we_use = 1
-        self.ensemble = ['e01','e02','e03']
+        self.ensemble = ['e01']
         self.dates = date_range(start_date, end_date)
 
         if not os.path.exists(self.file_ACCESS_dir):
@@ -221,9 +196,7 @@ class ACCESS_AWAP_GAN(Dataset):
                         hr_lr_data = (
                             ens, # Ensemble
                             date, # ACCESS date
-                            date.fromisoformat(
-                                increment_months(date.strftime("%Y-%m-%d"), lead_time)
-                            ), # AWAP date
+                            date + timedelta(lead_time), # AWAP date
                             lead_time # Leading time used for ACCESS data
                         )
                         file_list.append(hr_lr_data)
@@ -261,7 +234,7 @@ def read_awap_data(root_dir, date_time):
     var = dataset['pr'].values
     #print("AWAP data shape (before processing):", var.shape)
     #这里除以4是干啥
-    var = (np.log1p(var)) / 4 # log1p(x) to fix skew in distribution, /4 to scale roughly to [0,1]
+    var = (np.log1p(var)) / 7 # log1p(x) to fix skew in distribution, /4 to scale roughly to [0,1]
     var = var[np.newaxis, :, :].astype(np.float32)  # CxLATxLON
     
     dataset.close()
@@ -290,7 +263,7 @@ def read_access_data(root_dir, en, date_time, leading):
     # rescale to [0,1]
     var = dataset.isel(time=leading)['pr'].values
     #print("ACCESS data shape (before processing):", var.shape)
-    var = (np.log1p(var)) / 4 # log1p(x) to fix skew in distribution, /4 to scale roughly to [0,1]
+    var = (np.log1p(var)) / 7 # log1p(x) to fix skew in distribution, /4 to scale roughly to [0,1]
     
     var = var[np.newaxis, :, :].astype(np.float32)  # CxLATxLON
 

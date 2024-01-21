@@ -1,221 +1,276 @@
-Using 4 GPUs!
-Using 4 GPUs!
-Total Dataset: 15776
-Using 4 GPUs!
-Total Dataset: 15776
-Using 4 GPUs!
-Total Dataset: 3944
-Using 4 GPUs!
-Total Dataset: 3944
-Using 4 GPUs!
-Total Dataset: 3944
-Using 4 GPUs!
-Total Dataset: 3944
-Using 4 GPUs!
-Total Dataset: 3944
-Using 4 GPUs!
-Total Dataset: 3944
-Using 4 GPUs!
-Total Dataset: 3944
-Using 4 GPUs!
-Total Dataset: 3944
-Using 4 GPUs!
-Total Dataset: 3944
-Using 4 GPUs!
-Total Dataset: 3944
-Using 4 GPUs!
-Total Dataset: 3944
-Using 4 GPUs!
-Total Dataset: 3944
-Using 4 GPUs!
-Total Dataset: 3944
-Using 4 GPUs!
-Total Dataset: 3944
-Using 4 GPUs!
-Total Dataset: 3944
-Using 4 GPUs!
-Total Dataset: 3944
-Using 4 GPUs!
-Total Dataset: 3944
-Using 4 GPUs!
-Total Dataset: 3944
-Using 4 GPUs!
-Total Dataset: 3944
-Using 4 GPUs!
-Total Dataset: 3944
-Using 4 GPUs!
-Total Dataset: 3944
-Using 4 GPUs!
-Total Dataset: 3944
-Using 4 GPUs!
-Total Dataset: 3944
-Using 4 GPUs!
-Total Dataset: 3944
-Using 4 GPUs!
-Total Dataset: 3944
-Using 4 GPUs!
-Total Dataset: 3944
-Using 4 GPUs!
-Total Dataset: 3944
-Using 4 GPUs!
-Total Dataset: 3944
-Using 4 GPUs!
-Total Dataset: 3944
-Using 4 GPUs!
-Total Dataset: 3944
-Using 4 GPUs!
-Total Dataset: 3944
-Using 4 GPUs!
-Total Dataset: 3944
-Using 4 GPUs!
-Total Dataset: 3944
-Using 4 GPUs!
-Total Dataset: 3944
-Using 4 GPUs!
-Total Dataset: 3944
-Using 4 GPUs!
-Total Dataset: 3944
-Using 4 GPUs!
-Total Dataset: 3944
-Using 4 GPUs!
-Total Dataset: 3944
-Using 4 GPUs!
-Total Dataset: 3944
-Using 4 GPUs!
-Total Dataset: 3944
-Batch 0 completed in 5.537952899932861 seconds
-Using 4 GPUs!
-Total Dataset: 3944
-Batch 0 completed in 4.238522291183472 seconds
-Using 4 GPUs!
-Total Dataset: 3944
-Batch 0 completed in 4.259737730026245 seconds
-Using 4 GPUs!
-Total Dataset: 12190
-Batch 0 completed in 4.203640699386597 seconds
-Using 4 GPUs!
-Total Dataset: 12190
-Batch 0 completed in 4.528733968734741 seconds
-Using 4 GPUs!
-Total Dataset: 12190
-Batch 0 completed in 9.698215246200562 seconds
-Using 4 GPUs!
-Total Dataset: 12190
-Batch 0 completed in 4.62619686126709 seconds
-Using 4 GPUs!
-Total Dataset: 12190
-Batch 0 completed in 4.330655574798584 seconds
-Using 4 GPUs!
-Total Dataset: 12190
-Batch 0 completed in 5.3035149574279785 seconds
-Using 4 GPUs!
-Total Dataset: 12190
-Batch 0 completed in 4.436721324920654 seconds
-Using 4 GPUs!
-Total Dataset: 12190
-Batch 0 completed in 2.514066457748413 seconds
-Using 4 GPUs!
-Total Dataset: 12190
-Batch 0 completed in 4.3941872119903564 seconds
-Using 4 GPUs!
-Total Dataset: 12190
-Batch 0 completed in 3.3961434364318848 seconds
-Using 4 GPUs!
-Total Dataset: 12190
-Batch 0 completed in 4.771353006362915 seconds
-Using 4 GPUs!
-Total Dataset: 12190
-Batch 0 completed in 3.3457491397857666 seconds
-Using 4 GPUs!
-Total Dataset: 12190
-Batch 0 completed in 3.615443229675293 seconds
-Using 4 GPUs!
-Total Dataset: 12190
-Batch 0 completed in 3.342519760131836 seconds
-Using 4 GPUs!
-Total Dataset: 12190
-Batch 0 completed in 4.517764091491699 seconds
-Using 4 GPUs!
-Total Dataset: 12190
-Batch 0 completed in 3.993069648742676 seconds
-Using 4 GPUs!
-Total Dataset: 12190
-Batch 0 completed in 4.088897705078125 seconds
-Using 4 GPUs!
-Total Dataset: 12190
-Batch 0 completed in 3.282604455947876 seconds
-Using 4 GPUs!
-Total Dataset: 12190
-Batch 0 completed in 3.201528549194336 seconds
-RMSE: 31.53389549255371 MAE: 16.556154251098633 for epoch 0 batch 0. Completed in 6.832015514373779 seconds
-Epoch 0 completed in 11.17774510383606 seconds
+
+Using 4 GPUs!
+Total Dataset: 12192
+Batch 0 completed in 15.095325708389282 seconds
+RMSE: 13.609271049499512 MAE: 5.141700744628906 for epoch 0 batch 0. Completed in 7.33757758140564 seconds
+Epoch 0 completed in 23.737130880355835 seconds
 Checkpoint saved
-RMSE: 31.439414978027344 MAE: 16.40331268310547 for epoch 0. Completed in 429.39750146865845 seconds
+RMSE: 12.77851676940918 MAE: 4.76029109954834 for epoch 0. Completed in 434.6486940383911 seconds
 Checkpoint saved
-Best MAE: 16.40331268310547
-Training completed in 442.9544093608856 seconds
+Best MAE: 4.76029109954834
+Batch 0 completed in 0.5441014766693115 seconds
+RMSE: 13.683517456054688 MAE: 5.121685028076172 for epoch 1 batch 0. Completed in 6.708296775817871 seconds
+Epoch 1 completed in 9.424748182296753 seconds
+Checkpoint saved
+RMSE: 12.798702239990234 MAE: 4.76352071762085 for epoch 1. Completed in 432.39781951904297 seconds
+Best MAE: 4.76029109954834
+Batch 0 completed in 0.5688221454620361 seconds
+RMSE: 13.444313049316406 MAE: 5.074581623077393 for epoch 2 batch 0. Completed in 6.715835809707642 seconds
+Epoch 2 completed in 9.311973810195923 seconds
+Checkpoint saved
+RMSE: 12.800973892211914 MAE: 4.761134624481201 for epoch 2. Completed in 433.8011121749878 seconds
+Best MAE: 4.76029109954834
+Batch 0 completed in 0.6397936344146729 seconds
+RMSE: 14.011019706726074 MAE: 5.3332295417785645 for epoch 3 batch 0. Completed in 6.918254852294922 seconds
+Epoch 3 completed in 9.801599979400635 seconds
+Checkpoint saved
+RMSE: 12.789006233215332 MAE: 4.761074066162109 for epoch 3. Completed in 433.31363701820374 seconds
+Best MAE: 4.76029109954834
+Batch 0 completed in 0.5241444110870361 seconds
+RMSE: 13.66842269897461 MAE: 5.132658958435059 for epoch 4 batch 0. Completed in 6.694681406021118 seconds
+Epoch 4 completed in 9.432123899459839 seconds
+Checkpoint saved
+RMSE: 12.789865493774414 MAE: 4.761838912963867 for epoch 4. Completed in 436.10579347610474 seconds
+Best MAE: 4.76029109954834
+Batch 0 completed in 0.586432933807373 seconds
+RMSE: 13.707781791687012 MAE: 5.102952480316162 for epoch 5 batch 0. Completed in 6.806425094604492 seconds
+Epoch 5 completed in 9.489448308944702 seconds
+Checkpoint saved
+RMSE: 12.789306640625 MAE: 4.761321067810059 for epoch 5. Completed in 435.74134254455566 seconds
+Best MAE: 4.76029109954834
+Batch 0 completed in 0.6638228893280029 seconds
+RMSE: 13.96864128112793 MAE: 5.25579833984375 for epoch 6 batch 0. Completed in 6.704949378967285 seconds
+Epoch 6 completed in 9.42919111251831 seconds
+Checkpoint saved
+RMSE: 12.789826393127441 MAE: 4.76209831237793 for epoch 6. Completed in 436.2388825416565 seconds
+Best MAE: 4.76029109954834
+Batch 0 completed in 0.6943135261535645 seconds
+RMSE: 13.44446086883545 MAE: 5.085975646972656 for epoch 7 batch 0. Completed in 6.776795387268066 seconds
+Epoch 7 completed in 9.418153285980225 seconds
+Checkpoint saved
+RMSE: 12.791236877441406 MAE: 4.761787414550781 for epoch 7. Completed in 435.7664864063263 seconds
+Best MAE: 4.76029109954834
+Batch 0 completed in 0.5465559959411621 seconds
+RMSE: 13.559825897216797 MAE: 5.094770431518555 for epoch 8 batch 0. Completed in 6.757899522781372 seconds
+Epoch 8 completed in 9.60306167602539 seconds
+Checkpoint saved
+RMSE: 12.796282768249512 MAE: 4.761835098266602 for epoch 8. Completed in 436.6876950263977 seconds
+Best MAE: 4.76029109954834
+Batch 0 completed in 0.5751392841339111 seconds
+RMSE: 13.570948600769043 MAE: 5.101418495178223 for epoch 9 batch 0. Completed in 6.799944639205933 seconds
+Epoch 9 completed in 9.408540725708008 seconds
+Checkpoint saved
+RMSE: 12.782155990600586 MAE: 4.76085090637207 for epoch 9. Completed in 435.70217394828796 seconds
+Best MAE: 4.76029109954834
+Training completed in 4470.6212413311005 seconds
 Using 4 GPUs!
-Total Dataset: 12190
-Batch 0 completed in 3.370015859603882 seconds
-RMSE: 5.955636024475098 MAE: 1.873757004737854 for epoch 0 batch 0. Completed in 7.701288223266602 seconds
-Epoch 0 completed in 12.260864496231079 seconds
+Total Dataset: 3946
+Using 4 GPUs!
+Total Dataset: 3946
+Batch 0 completed in 4.398340463638306 seconds
+RMSE: 47.614803314208984 MAE: 33.99113845825195 for epoch 0 batch 0. Completed in 3.3226115703582764 seconds
+Epoch 0 completed in 9.015657901763916 seconds
 Checkpoint saved
-RMSE: 8.334187507629395 MAE: 2.5582504272460938 for epoch 0. Completed in 437.0112373828888 seconds
+RMSE: 47.55538558959961 MAE: 34.42281723022461 for epoch 0. Completed in 138.3057460784912 seconds
 Checkpoint saved
-Best MAE: 2.5582504272460938
-Batch 0 completed in 0.6631515026092529 seconds
-RMSE: 6.197028160095215 MAE: 1.8794941902160645 for epoch 1 batch 0. Completed in 7.666719913482666 seconds
-Epoch 1 completed in 11.22941255569458 seconds
+Best MAE: 34.42281723022461
+Batch 0 completed in 0.6262931823730469 seconds
+RMSE: 47.623775482177734 MAE: 33.98757553100586 for epoch 1 batch 0. Completed in 3.225633144378662 seconds
+Epoch 1 completed in 5.7038774490356445 seconds
 Checkpoint saved
-RMSE: 8.379961013793945 MAE: 2.559413433074951 for epoch 1. Completed in 435.3075168132782 seconds
-Best MAE: 2.5582504272460938
-Batch 0 completed in 0.61236572265625 seconds
-RMSE: 6.028440475463867 MAE: 1.8744163513183594 for epoch 2 batch 0. Completed in 7.519255638122559 seconds
-Epoch 2 completed in 10.989599227905273 seconds
+RMSE: 47.5548095703125 MAE: 34.424800872802734 for epoch 1. Completed in 137.5804741382599 seconds
+Best MAE: 34.42281723022461
+Batch 0 completed in 0.582599401473999 seconds
+RMSE: 47.63627624511719 MAE: 34.07421875 for epoch 2 batch 0. Completed in 3.6970534324645996 seconds
+Epoch 2 completed in 6.131650686264038 seconds
 Checkpoint saved
-RMSE: 8.39468002319336 MAE: 2.5602920055389404 for epoch 2. Completed in 435.4589719772339 seconds
-Best MAE: 2.5582504272460938
-Batch 0 completed in 0.6923706531524658 seconds
-RMSE: 6.70118522644043 MAE: 2.0333337783813477 for epoch 3 batch 0. Completed in 8.849531173706055 seconds
-Epoch 3 completed in 12.558337926864624 seconds
+RMSE: 47.55728530883789 MAE: 34.42674255371094 for epoch 2. Completed in 138.18084263801575 seconds
+Best MAE: 34.42281723022461
+Batch 0 completed in 0.6270301342010498 seconds
+RMSE: 47.63742446899414 MAE: 34.02167892456055 for epoch 3 batch 0. Completed in 3.4172370433807373 seconds
+Epoch 3 completed in 5.941789627075195 seconds
 Checkpoint saved
-RMSE: 8.330085754394531 MAE: 2.558732271194458 for epoch 3. Completed in 436.07060408592224 seconds
-Best MAE: 2.5582504272460938
-Batch 0 completed in 0.6589126586914062 seconds
-RMSE: 6.329792499542236 MAE: 1.8799885511398315 for epoch 4 batch 0. Completed in 7.683143138885498 seconds
-Epoch 4 completed in 11.264567852020264 seconds
+RMSE: 47.54752731323242 MAE: 34.41754150390625 for epoch 3. Completed in 137.91719245910645 seconds
 Checkpoint saved
-RMSE: 8.386799812316895 MAE: 2.5587751865386963 for epoch 4. Completed in 435.73197627067566 seconds
-Best MAE: 2.5582504272460938
-Batch 0 completed in 0.5447957515716553 seconds
-RMSE: 6.188817977905273 MAE: 1.8753526210784912 for epoch 5 batch 0. Completed in 7.844189643859863 seconds
-Epoch 5 completed in 12.239464521408081 seconds
+Best MAE: 34.41754150390625
+Batch 0 completed in 0.6387379169464111 seconds
+RMSE: 47.62062072753906 MAE: 33.998104095458984 for epoch 4 batch 0. Completed in 3.353651285171509 seconds
+Epoch 4 completed in 5.765913963317871 seconds
 Checkpoint saved
-RMSE: 8.342497825622559 MAE: 2.5585265159606934 for epoch 5. Completed in 434.76327085494995 seconds
-Best MAE: 2.5582504272460938
-Batch 0 completed in 0.6232569217681885 seconds
-RMSE: 6.308826923370361 MAE: 1.8910183906555176 for epoch 6 batch 0. Completed in 7.738487005233765 seconds
-Epoch 6 completed in 11.131547451019287 seconds
+RMSE: 47.55433654785156 MAE: 34.42281723022461 for epoch 4. Completed in 137.78050923347473 seconds
+Best MAE: 34.41754150390625
+Batch 0 completed in 0.6502523422241211 seconds
+RMSE: 47.5711669921875 MAE: 33.9527473449707 for epoch 5 batch 0. Completed in 3.560795545578003 seconds
+Epoch 5 completed in 6.057505130767822 seconds
 Checkpoint saved
-RMSE: 8.364230155944824 MAE: 2.558213949203491 for epoch 6. Completed in 434.8054566383362 seconds
+RMSE: 47.55950927734375 MAE: 34.428436279296875 for epoch 5. Completed in 138.24203538894653 seconds
+Best MAE: 34.41754150390625
+Batch 0 completed in 0.6415469646453857 seconds
+RMSE: 47.57160949707031 MAE: 33.948246002197266 for epoch 6 batch 0. Completed in 3.279189109802246 seconds
+Epoch 6 completed in 5.8039467334747314 seconds
 Checkpoint saved
-Best MAE: 2.558213949203491
-Batch 0 completed in 0.5188395977020264 seconds
-RMSE: 6.096317291259766 MAE: 1.8703997135162354 for epoch 7 batch 0. Completed in 7.7605955600738525 seconds
-Epoch 7 completed in 11.244741201400757 seconds
+RMSE: 47.551109313964844 MAE: 34.42079544067383 for epoch 6. Completed in 138.27066922187805 seconds
+Best MAE: 34.41754150390625
+Batch 0 completed in 0.5484447479248047 seconds
+RMSE: 47.57951736450195 MAE: 33.948848724365234 for epoch 7 batch 0. Completed in 3.5321695804595947 seconds
+Epoch 7 completed in 5.841495752334595 seconds
 Checkpoint saved
-RMSE: 8.349308013916016 MAE: 2.5586342811584473 for epoch 7. Completed in 440.269633769989 seconds
-Best MAE: 2.558213949203491
-Batch 0 completed in 0.652782678604126 seconds
-RMSE: 6.131128311157227 MAE: 1.8759667873382568 for epoch 8 batch 0. Completed in 7.666906833648682 seconds
-Epoch 8 completed in 11.379186630249023 seconds
+RMSE: 47.55019760131836 MAE: 34.42256546020508 for epoch 7. Completed in 138.23106718063354 seconds
+Best MAE: 34.41754150390625
+Batch 0 completed in 0.5457148551940918 seconds
+RMSE: 47.66249465942383 MAE: 34.01925277709961 for epoch 8 batch 0. Completed in 3.4843478202819824 seconds
+Epoch 8 completed in 6.092818260192871 seconds
 Checkpoint saved
-RMSE: 8.37067985534668 MAE: 2.559333562850952 for epoch 8. Completed in 437.9879868030548 seconds
-Best MAE: 2.558213949203491
-Batch 0 completed in 0.657597541809082 seconds
-RMSE: 6.6871795654296875 MAE: 2.0608949661254883 for epoch 9 batch 0. Completed in 7.615539312362671 seconds
-Epoch 9 completed in 11.163541555404663 seconds
+RMSE: 47.54802703857422 MAE: 34.42026138305664 for epoch 8. Completed in 138.77734780311584 seconds
+Best MAE: 34.41754150390625
+Batch 0 completed in 0.6633069515228271 seconds
+RMSE: 47.59186935424805 MAE: 33.94853591918945 for epoch 9 batch 0. Completed in 3.515186071395874 seconds
+Epoch 9 completed in 6.285878658294678 seconds
 Checkpoint saved
-RMSE: 8.374040603637695 MAE: 2.5595521926879883 for epoch 9. Completed in 438.3082835674286 seconds
-Best MAE: 2.558213949203491
-Training completed in 4495.132558584213 seconds
+RMSE: 47.55311584472656 MAE: 34.423370361328125 for epoch 9. Completed in 139.78583931922913 seconds
+Best MAE: 34.41754150390625
+Training completed in 1459.3752839565277 seconds
+Using 4 GPUs!
+Total Dataset: 4302
+Batch 0 completed in 4.968797206878662 seconds
+RMSE: 20.0444278717041 MAE: 9.523592948913574 for epoch 0 batch 0. Completed in 4.703520774841309 seconds
+Epoch 0 completed in 11.369160890579224 seconds
+Checkpoint saved
+RMSE: 20.35346031188965 MAE: 9.743453979492188 for epoch 0. Completed in 153.57548928260803 seconds
+Checkpoint saved
+Best MAE: 9.743453979492188
+Batch 0 completed in 0.6500976085662842 seconds
+RMSE: 20.057039260864258 MAE: 9.530768394470215 for epoch 1 batch 0. Completed in 4.2571187019348145 seconds
+Epoch 1 completed in 7.628906488418579 seconds
+Checkpoint saved
+RMSE: 20.35106086730957 MAE: 9.741179466247559 for epoch 1. Completed in 153.2462170124054 seconds
+Checkpoint saved
+Best MAE: 9.741179466247559
+Batch 0 completed in 0.6432373523712158 seconds
+RMSE: 20.053808212280273 MAE: 9.529875755310059 for epoch 2 batch 0. Completed in 4.266737461090088 seconds
+Epoch 2 completed in 7.802659749984741 seconds
+Checkpoint saved
+RMSE: 20.354276657104492 MAE: 9.743637084960938 for epoch 2. Completed in 153.70596742630005 seconds
+Best MAE: 9.741179466247559
+Batch 0 completed in 0.6543045043945312 seconds
+RMSE: 19.994468688964844 MAE: 9.504938125610352 for epoch 3 batch 0. Completed in 4.2100911140441895 seconds
+Epoch 3 completed in 7.632876396179199 seconds
+Checkpoint saved
+RMSE: 20.359519958496094 MAE: 9.743904113769531 for epoch 3. Completed in 154.1138572692871 seconds
+Best MAE: 9.741179466247559
+Batch 0 completed in 0.6692416667938232 seconds
+RMSE: 20.081382751464844 MAE: 9.539695739746094 for epoch 4 batch 0. Completed in 4.299794673919678 seconds
+Epoch 4 completed in 7.7152321338653564 seconds
+Checkpoint saved
+RMSE: 20.343250274658203 MAE: 9.741388320922852 for epoch 4. Completed in 154.53917622566223 seconds
+Best MAE: 9.741179466247559
+Batch 0 completed in 0.5568890571594238 seconds
+RMSE: 20.108598709106445 MAE: 9.558815956115723 for epoch 5 batch 0. Completed in 4.392719984054565 seconds
+Epoch 5 completed in 7.734452724456787 seconds
+Checkpoint saved
+RMSE: 20.352197647094727 MAE: 9.743491172790527 for epoch 5. Completed in 154.27953171730042 seconds
+Best MAE: 9.741179466247559
+Batch 0 completed in 0.5562920570373535 seconds
+RMSE: 20.05901527404785 MAE: 9.535889625549316 for epoch 6 batch 0. Completed in 4.415659189224243 seconds
+Epoch 6 completed in 7.752319097518921 seconds
+Checkpoint saved
+RMSE: 20.34438133239746 MAE: 9.740857124328613 for epoch 6. Completed in 153.6903576850891 seconds
+Checkpoint saved
+Best MAE: 9.740857124328613
+Batch 0 completed in 0.6616251468658447 seconds
+RMSE: 20.05536651611328 MAE: 9.521794319152832 for epoch 7 batch 0. Completed in 4.411647319793701 seconds
+Epoch 7 completed in 7.868126153945923 seconds
+Checkpoint saved
+RMSE: 20.34678840637207 MAE: 9.7423095703125 for epoch 7. Completed in 153.2877094745636 seconds
+Best MAE: 9.740857124328613
+Batch 0 completed in 0.5788249969482422 seconds
+RMSE: 20.051870346069336 MAE: 9.53183650970459 for epoch 8 batch 0. Completed in 4.38019061088562 seconds
+Epoch 8 completed in 7.6145288944244385 seconds
+Checkpoint saved
+RMSE: 20.359289169311523 MAE: 9.743406295776367 for epoch 8. Completed in 153.27549481391907 seconds
+Best MAE: 9.740857124328613
+Batch 0 completed in 0.5022382736206055 seconds
+RMSE: 20.012853622436523 MAE: 9.5099458694458 for epoch 9 batch 0. Completed in 4.362124919891357 seconds
+Epoch 9 completed in 7.5489959716796875 seconds
+Checkpoint saved
+RMSE: 20.35551643371582 MAE: 9.743792533874512 for epoch 9. Completed in 155.68083882331848 seconds
+Best MAE: 9.740857124328613
+Training completed in 1632.328931570053 seconds
+
+Using 4 GPUs!
+Total Dataset: 3786
+Using 4 GPUs!
+Total Dataset: 4112
+Using 4 GPUs!
+Total Dataset: 4302
+Using 4 GPUs!
+Total Dataset: 4302
+Using 4 GPUs!
+Total Dataset: 4302
+Batch 0 completed in 9.477603673934937 seconds
+RMSE: 18.033205032348633 MAE: 8.509171485900879 for epoch 0 batch 0. Completed in 4.405469655990601 seconds
+Epoch 0 completed in 15.68101692199707 seconds
+Checkpoint saved
+RMSE: 18.524011611938477 MAE: 8.480162620544434 for epoch 0. Completed in 153.4416160583496 seconds
+Checkpoint saved
+Best MAE: 8.480162620544434
+Batch 0 completed in 0.9829034805297852 seconds
+RMSE: 18.078298568725586 MAE: 8.527678489685059 for epoch 1 batch 0. Completed in 4.630817651748657 seconds
+Epoch 1 completed in 8.093265056610107 seconds
+Checkpoint saved
+RMSE: 18.533464431762695 MAE: 8.480660438537598 for epoch 1. Completed in 155.25809001922607 seconds
+Best MAE: 8.480162620544434
+Batch 0 completed in 0.9169409275054932 seconds
+RMSE: 18.07375717163086 MAE: 8.514949798583984 for epoch 2 batch 0. Completed in 4.528811693191528 seconds
+Epoch 2 completed in 8.148977994918823 seconds
+Checkpoint saved
+RMSE: 18.528919219970703 MAE: 8.477934837341309 for epoch 2. Completed in 155.6108045578003 seconds
+Checkpoint saved
+Best MAE: 8.477934837341309
+Batch 0 completed in 0.9776945114135742 seconds
+RMSE: 18.0562801361084 MAE: 8.502013206481934 for epoch 3 batch 0. Completed in 4.014150619506836 seconds
+Epoch 3 completed in 7.881841421127319 seconds
+Checkpoint saved
+RMSE: 18.518075942993164 MAE: 8.477873802185059 for epoch 3. Completed in 154.30147409439087 seconds
+Checkpoint saved
+Best MAE: 8.477873802185059
+Batch 0 completed in 1.0671062469482422 seconds
+RMSE: 18.01360511779785 MAE: 8.493282318115234 for epoch 4 batch 0. Completed in 4.44455361366272 seconds
+Epoch 4 completed in 8.324636220932007 seconds
+Checkpoint saved
+RMSE: 18.50873374938965 MAE: 8.474516868591309 for epoch 4. Completed in 155.1640179157257 seconds
+Checkpoint saved
+Best MAE: 8.474516868591309
+Batch 0 completed in 1.0341582298278809 seconds
+RMSE: 18.07976531982422 MAE: 8.525235176086426 for epoch 5 batch 0. Completed in 4.346653699874878 seconds
+Epoch 5 completed in 8.279500961303711 seconds
+Checkpoint saved
+RMSE: 18.50820541381836 MAE: 8.478323936462402 for epoch 5. Completed in 155.90282440185547 seconds
+Best MAE: 8.474516868591309
+Batch 0 completed in 1.0121707916259766 seconds
+RMSE: 18.076641082763672 MAE: 8.524344444274902 for epoch 6 batch 0. Completed in 4.358943462371826 seconds
+Epoch 6 completed in 8.153124570846558 seconds
+Checkpoint saved
+RMSE: 18.51639175415039 MAE: 8.47581958770752 for epoch 6. Completed in 155.02716088294983 seconds
+Best MAE: 8.474516868591309
+Batch 0 completed in 0.9043049812316895 seconds
+RMSE: 18.033926010131836 MAE: 8.49633502960205 for epoch 7 batch 0. Completed in 5.04483962059021 seconds
+Epoch 7 completed in 8.936418056488037 seconds
+Checkpoint saved
+RMSE: 18.531951904296875 MAE: 8.480545043945312 for epoch 7. Completed in 155.83237600326538 seconds
+Best MAE: 8.474516868591309
+Batch 0 completed in 1.0016396045684814 seconds
+RMSE: 18.04591941833496 MAE: 8.511482238769531 for epoch 8 batch 0. Completed in 4.575185060501099 seconds
+Epoch 8 completed in 8.533412218093872 seconds
+Checkpoint saved
+RMSE: 18.52931785583496 MAE: 8.479833602905273 for epoch 8. Completed in 155.20781254768372 seconds
+Best MAE: 8.474516868591309
+Batch 0 completed in 0.9929022789001465 seconds
+RMSE: 18.055343627929688 MAE: 8.511582374572754 for epoch 9 batch 0. Completed in 3.9458703994750977 seconds
+Epoch 9 completed in 7.803447484970093 seconds
+Checkpoint saved
+RMSE: 18.51614761352539 MAE: 8.476574897766113 for epoch 9. Completed in 155.81575298309326 seconds
+Best MAE: 8.474516868591309
+Training completed in 1662.284053325653 seconds
+Using 4 GPUs!
+Total Dataset: 4302
