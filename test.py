@@ -20,8 +20,9 @@ TEST_SAVE_PREFIX = "/scratch/iu60/xs5813/TestResults/"
 MODEL_PREFIX = SAVE_PREFIX + "DESRGAN/checkpoint/" + "v" 
 TESTING_DATA = "/scratch/iu60/xs5813/Processed_data/e*/*.nc"
 
-australia_lon_range = (143,  153.5)
-australia_lat_range = (-32, -24)
+australia_lon_range = (142.975,  154.275)
+australia_lat_range = (-31.525, -23.975)
+scale = 1.5
 
 def make_directories(model_name: str, version:str) -> None:
     """
@@ -42,11 +43,19 @@ def make_directories(model_name: str, version:str) -> None:
         if not isdir(TEST_SAVE_PREFIX + "DESRGAN" + "/" + "v" + version + "/" + model_name.split(".")[0] + "/" + en):
             mkdir(TEST_SAVE_PREFIX + "DESRGAN" + "/" + "v" + version + "/" + model_name.split(".")[0] + "/" + en)
 
-def generate_sample(rain_prob, gamma_shape, gamma_scale):
-    # 生成一个样本估计值
+def generate_sample(rain_prob, gamma_shape, gamma_scale, num_samples=2000):
+    B, C, H, W = rain_prob.shape
     rain_sample = torch.zeros_like(rain_prob)
-    rain_mask = torch.bernoulli(rain_prob)  # 根据降雨概率生成一个掩码
-    rain_sample[rain_mask.bool()] = torch.distributions.Gamma(gamma_shape, gamma_scale).sample()[rain_mask.bool()]
+    
+    # 遍历每个像素
+    for b in range(B):
+        for h in range(H):
+            for w in range(W):
+                # 检查是否生成样本
+                if torch.bernoulli(rain_prob[b, 0, h, w]).item() == 1:
+                    gamma_dist = torch.distributions.Gamma(gamma_shape[b, 0, h, w], gamma_scale[b, 0, h, w])
+                    samples = gamma_dist.sample((num_samples,))
+                    rain_sample[b, 0, h, w] = samples.median()
     return rain_sample
 
 def generate_batch(model_G, da_selected):
@@ -75,7 +84,7 @@ def generate_batch(model_G, da_selected):
     # Resize and convert back to DataArray
     slice_output = slice_output.cpu().data.numpy()
     slice_output = np.clip(slice_output[0], 0., 1.)
-    slice_output = cv2.resize(np.squeeze(slice_output), (366, 381), interpolation=cv2.INTER_CUBIC)
+    slice_output = cv2.resize(np.squeeze(slice_output), (226,151), interpolation=cv2.INTER_CUBIC)
     slice_output = np.clip(slice_output, 0, 1)
     
     return slice_output
@@ -109,7 +118,8 @@ def resize_data(data, time_value):
     """
 
     # Resize data to target shape
-    new_shape = (366,381)  # Target width and height
+    #new_shape = (215,161)  # Target width and height
+    new_shape = (226,151)
     resized_values = np.asarray(data).astype(np.float32)
     resized_values = cv2.resize(resized_values, new_shape, interpolation=cv2.INTER_CUBIC)
     if not isinstance(time_value, np.datetime64):
@@ -209,7 +219,7 @@ def test_model(model_G_name: str, version: str, year: int) -> None:
 if __name__ == "__main__":
 
     #model_G_name = f"model_G_i0000{str(9).zfill(2)}"
-    model_G_name = "model_G_i000004_best"
+    model_G_name = "model_G_i000003_best_20240122-153141"
     #version = "TrainingIterationRMSETest"
     version = "TestRefactored"
 

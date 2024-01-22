@@ -39,7 +39,7 @@ def main():
             ds_total = []
             for time_value in ds_raw['time'].values:
                 # Select the 'pr' data for the current time and apply geographic selection and resizing
-                da_raw = ds_raw.sel(time=time_value)['pr'] * 86000 # Convert from kg m-2 s-1 to mm/day
+                da_raw = ds_raw.sel(time=time_value)['pr'] * 86400 # Convert from kg m-2 s-1 to mm/day
                 
                 da_selected = select_data(da_raw)
                 da_to_save = resize_data(da_selected, time_value)

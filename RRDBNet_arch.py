@@ -110,7 +110,7 @@ class RRDBNetx4x2(nn.Module):
         
         # add bernouli-gamma
         bg_output = self.output_conv(self.lrelu(fea))  # 通过新增的卷积层得到输出
-        print("bg_output", bg_output.shape)
+        #print("bg_output", bg_output.shape)
         #normal the shape should be [3, 3, 128, 128]
         #match discrimator should be [3, 1, 128, 128]
         rain_prob = torch.sigmoid(bg_output[:, 0, :, :]).unsqueeze(1)  # 下雨概率, 形状 [3, 1, 128, 128]

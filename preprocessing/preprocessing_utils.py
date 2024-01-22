@@ -9,8 +9,8 @@ import cv2
 #纬度范围：大约从南纬 29 度到南纬 10.5 度。
 #lon_range = (111.975,  156.275)
 #lat_range = (-44.525, -9.975)
-lon_range = (143,  153.7)
-lat_range = (-32, -24)
+lon_range = (142.975,  154.275)
+lat_range = (-31.525, -23.975)
 #lon_range = (138,  156.275)
 #lat_range = (-29, -9.975)
 scale = 1.5
@@ -47,7 +47,9 @@ def resize_data(data, time_value):
     - xarray.DataArray: The resized data array.
     """
     # Resize the data array using OpenCV
-    new_shape = (86, 110) # Shift to same proportion as AWAP + 1.5x scale  60->40km???
+    #new_shape = (86, 110) # Shift to same proportion as AWAP + 1.5x scale  60->40km???
+    new_shape = (int(data.lat.size * scale), int(data.lon.size * scale))
+
     # Resize using cubic interpolation (cv2 treats the shape as (width, height) instead of (height, width) hence the [::-1])
     resized_values = cv2.resize(data.values, new_shape[::-1], interpolation=cv2.INTER_CUBIC) # todo - is this the right interpolation method? 
     resized_values = np.clip(resized_values, 0, None)  # Clipping negative values

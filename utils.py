@@ -222,6 +222,8 @@ class ACCESS_AWAP_GAN(Dataset):
 
         lr = read_access_data(self.file_ACCESS_dir, en, access_date, time_leading)
         hr = read_awap_data(self.file_AWAP_dir, awap_date)
+        #utils lr shape (1, 21, 19)
+        #utils hr shape (1, 151, 226)
         return lr, hr, awap_date.strftime("%Y%m%d"), time_leading
 
 

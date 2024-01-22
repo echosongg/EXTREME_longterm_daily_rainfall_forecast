@@ -19,6 +19,7 @@ from os import mkdir
 from os.path import isdir
 from torch.utils.data import random_split, DataLoader
 from datetime import date
+from datetime import datetime
 from utils import Huber, ACCESS_AWAP_GAN, RMSE, MAE, log_loss
 import cv2
 import RRDBNet_arch as G_arch
@@ -32,11 +33,10 @@ SAVE_PREFIX = "/scratch/iu60/xs5813/DESRGAN_ORIGINAL/"
 EXP_NAME = "DESRGAN"
 VERSION = "TestRefactored"
 UPSCALE = 8  # upscaling factor 40km->5km
-
 NB_BATCH = 3  # mini-batch
-NB_Iteration = 10 # Number of iterations (epochs)
+NB_Iteration = 1 # Number of iterations (epochs)
 #PATCH_SIZE = 576  # Training patch size
-PATCH_SIZE = 256
+PATCH_SIZE = 128
 NB_THREADS = 36
 
 START_ITER = 0  # Set 0 for from scratch, else will load saved params and trains further
@@ -88,28 +88,32 @@ def write_log(log):
 
 def SaveCheckpoint(i, model_G=None, model_D=None, opt_G=None, opt_D=None, best=False):
     """
-        Save the model and optimizer params.
+    Save the model and optimizer params.
 
-        Args:
-            i: current iteration
-            model_G: generator model
-            model_D: discriminator model
-            opt_G: generator optimizer
-            opt_D: discriminator optimizer
-            best: whether to save the best model
+    Args:
+        i: current iteration
+        model_G: generator model
+        model_D: discriminator model
+        opt_G: generator optimizer
+        opt_D: discriminator optimizer
+        best: whether to save the best model
     """
     str_best = ''
     if best:
         str_best = '_best'
 
+    # 获取当前的日期和时间
+    current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
+
     i = i + START_ITER + 1
 
-    torch.save(model_G, '{}/checkpoint/v{}/model_G_i{:06d}{}.pth'.format(SAVE_PREFIX + EXP_NAME, str(VERSION), i, str_best))
-    torch.save(model_D, '{}/checkpoint/v{}/model_D_i{:06d}{}.pth'.format(SAVE_PREFIX + EXP_NAME, str(VERSION), i, str_best))
+    torch.save(model_G, '{}/checkpoint/v{}/model_G_i{:06d}{}_{}.pth'.format(SAVE_PREFIX + EXP_NAME, str(VERSION), i, str_best, current_time))
+    torch.save(model_D, '{}/checkpoint/v{}/model_D_i{:06d}{}_{}.pth'.format(SAVE_PREFIX + EXP_NAME, str(VERSION), i, str_best, current_time))
 
-    torch.save(opt_G, '{}/checkpoint/v{}/opt_G_i{:06d}{}.pth'.format(SAVE_PREFIX + EXP_NAME, str(VERSION), i, str_best))
-    torch.save(opt_D, '{}/checkpoint/v{}/opt_D_i{:06d}{}.pth'.format(SAVE_PREFIX + EXP_NAME, str(VERSION), i, str_best))
-    write_log("Checkpoint saved")
+    torch.save(opt_G, '{}/checkpoint/v{}/opt_G_i{:06d}{}_{}.pth'.format(SAVE_PREFIX + EXP_NAME, str(VERSION), i, str_best, current_time))
+    torch.save(opt_D, '{}/checkpoint/v{}/opt_D_i{:06d}{}_{}.pth'.format(SAVE_PREFIX + EXP_NAME, str(VERSION), i, str_best, current_time))
+    write_log("Checkpoint saved with timestamp " + current_time)
+
 
 def rand_bbox(size, lam):
     """
@@ -176,6 +180,10 @@ def cutmix(batch_S_CutMix, batch_H, d_S, d_H):
 def get_patches(batch, lr, hr, patch_size, scaling_factor):
 
     np.random.seed(batch)
+    print("Low Resolution Image Size: ", lr.shape)
+    print("High Resolution Image Size: ", hr.shape)
+    #Low Resolution Image Size:  torch.Size([3, 1, 22, 18])
+    #High Resolution Image Size:  torch.Size([3, 1, 161, 215])
     # 确保随机坐标加上补丁尺寸不会超出边界
     max_hh = min(lr.shape[2] * scaling_factor, hr.shape[2]) - patch_size
     max_hw = min(lr.shape[3] * scaling_factor, hr.shape[3]) - patch_size
@@ -188,12 +196,31 @@ def get_patches(batch, lr, hr, patch_size, scaling_factor):
 
     return lr, hr
 ''''''
-def generate_sample(rain_prob, gamma_shape, gamma_scale):
-    # 生成一个样本估计值
-    rain_sample = torch.zeros_like(rain_prob)
-    rain_mask = torch.bernoulli(rain_prob)  # 根据降雨概率生成一个掩码
-    rain_sample[rain_mask.bool()] = torch.distributions.Gamma(gamma_shape, gamma_scale).sample()[rain_mask.bool()]
-    return rain_sample
+
+def generate_sample(rain_prob, gamma_shape, gamma_scale, num_samples=2000):
+    B, C, H, W = rain_prob.shape  # 获取rain_prob的形状，B:批次大小, C:通道数, H:高度, W:宽度
+    rain_sample = torch.zeros_like(rain_prob)  # 初始化一个与rain_prob形状相同的零张量
+    
+    # 遍历每个像素
+    for b in range(B):
+        for h in range(H):
+            for w in range(W):
+                # 如果下雨概率小于0.5，即有可能下雨
+                if rain_prob[b, 0, h, w] < 0.5:
+                    # 创建一个伽玛分布对象
+                    gamma_dist = torch.distributions.Gamma(gamma_shape[b, 0, h, w], gamma_scale[b, 0, h, w])
+                    samples = gamma_dist.sample((num_samples,))  # 从伽玛分布中生成num_samples个样本
+                    median_sample = samples.median()  # 计算这些样本的中值
+                    # 降雨量是中值与概率的乘积
+                    rain_sample[b, 0, h, w] = median_sample * (1 - rain_prob[b, 0, h, w])
+                # 否则，降雨量为0
+                else:
+                    rain_sample[b, 0, h, w] = 0
+    return rain_sample  # 返回生成的雨量样本中值张量
+
+
+
+
 
 def discriminator_loss(model_G, model_D, batch_L, batch_H):
     """
@@ -377,20 +404,24 @@ def get_performance(model_G, dataloader, epoch, batch=-1):
 
             # Generate sample estimate from the distribution
             batch_Out = generate_sample(rain_prob, gamma_shape, gamma_scale).cpu().data.numpy()
+            print("batch_Out shape", batch_Out.shape)
             batch_Out = np.clip(batch_Out, 0., 1.)
             # Process output and ground truth for metric calculation
             batch_Out = np.squeeze(batch_Out, axis = 1)
             #batch_Out = np.transpose(batch_Out, [1, 2, 0])
             batch_Out = batch_Out.transpose(1, 2, 0) # 688*880*16
-
-            batch_Out = cv2.resize(batch_Out, (366, 381), interpolation=cv2.INTER_CUBIC)
+            batch_Out = cv2.resize(batch_Out, (226,151), interpolation=cv2.INTER_CUBIC)
             if len(batch_Out.shape) == 2:
                 batch_Out = batch_Out.reshape(batch_Out.shape[0], batch_Out.shape[1], 1)
             #batch_Out = np.transpose(batch_Out, [2, 0, 1])
             batch_Out = batch_Out.transpose(2, 0, 1)
             img_gt = np.squeeze(batch_H)
+            print("这一步骤是为了看看我的ACCESS预处理和AWAP有没有数量级差距")
+
             img_gt = np.expm1(img_gt * 7)  # Revert preprocessing on ground truth
             img_target = np.expm1(batch_Out * 7)  # Revert preprocessing on prediction
+            print("img_gt max value", np.max(img_gt))
+            print("img_target",np.max(img_target))
 
             rmses.append(RMSE(img_gt, img_target, 0))
             maes.append(MAE(img_gt, img_target, 0))
@@ -437,10 +468,10 @@ def train_GAN(model_G, model_D, opt_G, opt_D, train_dataloders, val_dataloders, 
 
             # Get patches for training
             lr, hr = get_patches(batch_number, lr, hr, PATCH_SIZE, UPSCALE)
-            '''
-            Post-patch LR shape: torch.Size([3, 1, 32, 32])
-            Post-patch HR shape: torch.Size([3, 1, 256, 256])
-            '''
+            print("after get patch shape")
+            print("lr shape", lr.shape)
+            print("hr shape", hr.shape)
+
 
             # Train discriminator then generator
             discriminator_iteration(model_G, model_D, opt_G, opt_D, lr, hr)
