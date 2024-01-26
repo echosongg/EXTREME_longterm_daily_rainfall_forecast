@@ -77,8 +77,6 @@ print("ensemble",ensemble)
 input_directory = "/g/data/ux62/access-s2/hindcast/raw_model/atmos/pr/daily/"
 output_directory = "/scratch/iu60/xs5813/draftresult/"
 target_year = "1994"
-target_date = "1994-08-16"  # 设置目标日期
-
 def main():
     # Iterate through each ensemble member
     for exx in ensemble:
@@ -96,10 +94,11 @@ def main():
                 ds_raw = ds_raw.fillna(0) # Fill missing values with zero
 
                 # Process each time value in the dataset
+                ds_total = []
                 for time_value in ds_raw['time'].values:
-                    # Convert time to string and check if it matches the target date
-                    time_str = str(np.datetime_as_string(time_value, unit='D'))
-                    if time_str == target_date:
+                    # Convert time to string and check if it matches the target year
+                    time_str = str(time_value)[:4]
+                    if time_str == target_year:
                         # Select the 'pr' data for the current time and apply geographic selection and resizing
                         da_raw = ds_raw.sel(time=time_value)['pr'] * 86400 # Convert from kg m-2 s-1 to mm/day
 
@@ -113,14 +112,18 @@ def main():
                         da_selected = select_data(da_raw)
                         da_to_save = resize_data(da_selected, np.datetime64(time_value))
                         
-                        # Save the data
-                        target_path = os.path.join(output_directory, exx, f"{time_str}.nc")
-                        print("target path", target_path)
-                        da_to_save.to_netcdf(target_path)
+                        ds_total.append(da_to_save)
 
-                # Close the dataset to free resources
+                # Merge the DataArrays into a single dataset
+                if ds_total:
+                    ds_total = xr.concat(ds_total, dim='time')
+
+                    # Save and close
+                    target_path = os.path.join(output_directory, exx, f"{target_year}.nc")
+                    print("target path", target_path)
+                    ds_total.to_netcdf(target_path)
+
                 ds_raw.close()
-                break  
 
 
 if __name__ == "__main__":

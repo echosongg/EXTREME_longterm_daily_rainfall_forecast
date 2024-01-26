@@ -9,8 +9,6 @@ import xarray as xr
 import cv2
 from torch.utils.data import Dataset
 import xskillscore as xs
-import scipy.stats
-import scipy.integrate
 
 
 ### COMMON FUNCTIONS ###
@@ -80,18 +78,17 @@ def log_loss(batch_H, p_pred, alpha_pred, beta_pred, epsilon=1e-6):
     Returns:
         The calculated loss.
     """
-    print("start log loss")
     batch_H = batch_H.detach().cpu().numpy()
     p_pred = p_pred.detach().cpu().numpy()
     alpha_pred = alpha_pred.detach().cpu().numpy()
     beta_pred = beta_pred.detach().cpu().numpy()
 
-    # Here we assume rainfall if the predicted probability is less than 0.5
-    p_true = (p_pred < 0.5).astype(float)
+    p_true = (batch_H > 0).astype(float)  # Convert batch_H to a binary rainfall variable
     term1 = (1 - p_true) * np.log(1 - p_pred + epsilon)
-    term2 = p_true * (np.log(p_pred + epsilon) + (alpha_pred - 1) * np.log(batch_H + epsilon) - batch_H / (beta_pred + epsilon) - alpha_pred * np.log(beta_pred + epsilon) - scipy.special.gammaln(alpha_pred + epsilon))
+    term2 = p_true * (np.log(p_pred + epsilon) + (alpha_pred - 1) * np.log(batch_H + epsilon) + alpha_pred * np.log(beta_pred + epsilon) - scipy.special.gammaln(alpha_pred + epsilon) - batch_H / (beta_pred + epsilon))
     loss = term1 + term2
     return -np.mean(loss)
+
 
 
 def CRPS(y_true, y_pred, shave_border=4):
@@ -108,43 +105,6 @@ def CRPS(y_true, y_pred, shave_border=4):
     crps = xs.crps_ensemble(target_data, diff)
 
     return crps
-
-def gamma_cdf(x, alpha, beta):
-    """caculate gamma CDF"""
-    return scipy.stats.gamma.cdf(x, alpha, scale=1/beta)
-
-def crps_gamma(observation, p_pred, alpha_pred, beta_pred):
-    """calculate CRPS"""
-    def crps_integral(x):
-        pred_cdf = p_pred * gamma_cdf(x, alpha_pred, beta_pred)
-        obs_cdf = np.heaviside(x - observation, 0.5)
-        result = (pred_cdf - obs_cdf) ** 2
-        return result
-
-    integral, _ = scipy.integrate.quad(crps_integral, 0, np.inf)
-    return integral
-
-def crps_batch(batch_H, p_pred, alpha_pred, beta_pred):
-    # 将张量转换为 NumPy 数组
-    B, C, H, W = p_pred.shape
-    batch_H_np = batch_H.detach().cpu().numpy()
-    p_pred_np = p_pred.detach().cpu().numpy()
-    alpha_pred_np = alpha_pred.detach().cpu().numpy()
-    beta_pred_np = beta_pred.detach().cpu().numpy()
-
-    crps_values = []
-    # 迭代每个样本
-    for b in range(B):
-        for h in range(H):
-            for w in range(W):
-                # 计算每个像素点的 CRPS
-                crps_value = crps_gamma(batch_H_np[b, 0, h, w], p_pred_np[b, 0, h, w], alpha_pred_np[b, 0, h, w], beta_pred_np[b, 0, h, w])
-                crps_values.append(crps_value)
-
-    return np.mean(crps_values)
-
-
-
 
 def Huber(input, target, delta=0.01, reduce=True):
     abs_error = torch.abs(input - target)

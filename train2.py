@@ -36,7 +36,7 @@ EXP_NAME = "version_0"
 VERSION = "TestRefactored"
 UPSCALE = 8  # upscaling factor 40km->5km
 NB_BATCH = 3  # mini-batch
-NB_Iteration = 10 # Number of iterations (epochs)
+NB_Iteration = 3 # Number of iterations (epochs)
 #PATCH_SIZE = 576  # Training patch size
 PATCH_SIZE = 128
 NB_THREADS = 36
@@ -48,7 +48,7 @@ L_FM = 1  # Scaling params for the feature matching loss
 L_LPIPS = 1e-3  # Scaling params for the LPIPS loss
 #add gamma loss and CRPS loss
 L_LOG = 1e-3  # 权重参数 for the log loss
-L_CRPS = 1e-3  # 权重参数 for the CRPS loss
+L_CRPS = 0  # 权重参数 for the CRPS loss
 
 LR_G = 1e-5  # Learning rate for the generator
 LR_D = 1e-5  # Learning rate for the discriminator
@@ -323,7 +323,7 @@ def generator_loss(model_G, model_D, batch_L, batch_H):
     #log loss, ground truth and gamma distribution
     loss_Log = log_loss(batch_H, rain_prob, gamma_shape, gamma_scale)
 
-    crps = crps_batch(batch_H, rain_prob, gamma_shape, gamma_scale)
+    crps = 0
 
     # GAN losses
     loss_Advs = []
@@ -416,14 +416,20 @@ def get_performance(model_G, dataloader, epoch, batch=-1):
             #batch_Out = np.transpose(batch_Out, [2, 0, 1])
             batch_Out = batch_Out.transpose(2, 0, 1)
             img_gt = np.squeeze(batch_H)
+            print("这一步骤是为了看看我的ACCESS预处理和AWAP有没有数量级差距")
 
             img_gt = np.expm1(img_gt * 7)  # Revert preprocessing on ground truth
             img_target = np.expm1(batch_Out * 7)  # Revert preprocessing on prediction
-            print("img_gt max value", np.max(img_gt), "img_target",np.max(img_target))
+            print("img_gt max value", np.max(img_gt))
+            print("img_target",np.max(img_target))
+            print("打印一下0值")
+
             zero_count_gt = np.size(img_gt) - np.count_nonzero(img_gt)
             zero_count_target = np.size(img_target) - np.count_nonzero(img_target)
 
-            print("Number of zero values in img_gt:", zero_count_gt,"Number of zero values in img_target:", zero_count_target)
+            print("Number of zero values in img_gt:", zero_count_gt)
+            print("Number of zero values in img_target:", zero_count_target)
+
 
             rmses.append(RMSE(img_gt, img_target, 0))
             maes.append(MAE(img_gt, img_target, 0))

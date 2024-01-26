@@ -1,4 +1,4 @@
-import RRDBNet_arch as arch
+import RRDBNet_arch2 as arch
 import argparse
 import glob
 from os import mkdir
@@ -15,9 +15,9 @@ import torch.nn as nn
 import argparse
 
 
-SAVE_PREFIX = "/scratch/iu60/xs5813/EXTREME_MODEL_VERSION/"
+SAVE_PREFIX = "/scratch/iu60/xs5813/DESRGAN_ORIGINAL/"
 TEST_SAVE_PREFIX = "/scratch/iu60/xs5813/TestResults/"
-MODEL_PREFIX = SAVE_PREFIX + "version_0/checkpoint/" + "v" 
+MODEL_PREFIX = SAVE_PREFIX + "DESRGAN/checkpoint/" + "v" 
 TESTING_DATA = "/scratch/iu60/xs5813/Processed_data/e*/*.nc"
 
 australia_lon_range = (142.975,  154.275)
@@ -44,24 +44,19 @@ def make_directories(model_name: str, version:str) -> None:
             mkdir(TEST_SAVE_PREFIX + "DESRGAN" + "/" + "v" + version + "/" + model_name.split(".")[0] + "/" + en)
 
 def generate_sample(rain_prob, gamma_shape, gamma_scale, num_samples=2000):
-    B, C, H, W = rain_prob.shape  # 获取rain_prob的形状，B:批次大小, C:通道数, H:高度, W:宽度
-    rain_sample = torch.zeros_like(rain_prob)  # 初始化一个与rain_prob形状相同的零张量
+    B, C, H, W = rain_prob.shape
+    rain_sample = torch.zeros_like(rain_prob)
     
+    # 遍历每个像素
     for b in range(B):
         for h in range(H):
             for w in range(W):
-                # 如果下雨概率小于0.5，即有可能下雨
-                if rain_prob[b, 0, h, w] < 0.5:
-                    # 创建一个伽玛分布对象
+                # 检查是否生成样本
+                if torch.bernoulli(rain_prob[b, 0, h, w]).item() == 1:
                     gamma_dist = torch.distributions.Gamma(gamma_shape[b, 0, h, w], gamma_scale[b, 0, h, w])
-                    # 计算伽玛分布的期望值
-                    expected_rainfall = gamma_shape[b, 0, h, w] / gamma_scale[b, 0, h, w]
-                    rain_sample[b, 0, h, w] = expected_rainfall * (1 - rain_prob[b, 0, h, w])
-                # 否则，降雨量为0
-                else:
-                    rain_sample[b, 0, h, w] = 0
+                    samples = gamma_dist.sample((num_samples,))
+                    rain_sample[b, 0, h, w] = samples.median()
     return rain_sample
-
 
 def generate_batch(model_G, da_selected):
     """
@@ -82,9 +77,7 @@ def generate_batch(model_G, da_selected):
 
     # Run model
     #slice_output = model_G(batch_input)
-    rain_prob, gamma_shape, gamma_scale = model_G(batch_input)
-
-    slice_output = generate_sample(rain_prob, gamma_shape, gamma_scale)
+    slice_output = model_G(batch_input)
 
     # Resize and convert back to DataArray
     slice_output = slice_output.cpu().data.numpy()
@@ -155,7 +148,7 @@ def test_model(model_G_name: str, version: str, year: int) -> None:
     make_directories(model_G_name, version)
 
     # Model architecture
-    model_G = arch.RRDBNetx4x2(1, 3, 64, 23, gc=32).cuda()
+    model_G = arch.RRDBNetx4x2(1, 1, 64, 23, gc=32).cuda()
 
     # Load model
     model_path = MODEL_PREFIX + version + "/" + model_G_name + ".pth"
@@ -224,8 +217,7 @@ def test_model(model_G_name: str, version: str, year: int) -> None:
 if __name__ == "__main__":
 
     #model_G_name = f"model_G_i0000{str(9).zfill(2)}"
-    model_G_name = "model_G_i000010_best_20240126-010319"
-    #model_G_i000010_best_20240126-010319.pth
+    model_G_name = "model_G_i000009_best_20240124-124538"
     #version = "TrainingIterationRMSETest"
     version = "TestRefactored"
 

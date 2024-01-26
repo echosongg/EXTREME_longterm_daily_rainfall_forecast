@@ -20,19 +20,17 @@ from os.path import isdir
 from torch.utils.data import random_split, DataLoader
 from datetime import date
 from datetime import datetime
-from utils import Huber, ACCESS_AWAP_GAN, RMSE, MAE, log_loss, crps_batch
+from utils import Huber, ACCESS_AWAP_GAN, RMSE, MAE, log_loss
 import cv2
-import RRDBNet_arch as G_arch
-import UNET_arch as D_arch
-import scipy.special
-
+import RRDBNet_arch2 as G_arch
+import UNET_arch2 as D_arch
 
 ### USER PARAMS ###
 START_TIME = date(1990, 1, 1)
 END_TIME = date(2001, 12, 31)
 
-SAVE_PREFIX = "/scratch/iu60/xs5813/EXTREME_MODEL_VERSION/"
-EXP_NAME = "version_0"
+SAVE_PREFIX = "/scratch/iu60/xs5813/DESRGAN_ORIGINAL/"
+EXP_NAME = "DESRGAN"
 VERSION = "TestRefactored"
 UPSCALE = 8  # upscaling factor 40km->5km
 NB_BATCH = 3  # mini-batch
@@ -47,8 +45,8 @@ L_ADV = 1e-3  # Scaling params for the Adv loss
 L_FM = 1  # Scaling params for the feature matching loss
 L_LPIPS = 1e-3  # Scaling params for the LPIPS loss
 #add gamma loss and CRPS loss
-L_LOG = 1e-3  # 权重参数 for the log loss
-L_CRPS = 1e-3  # 权重参数 for the CRPS loss
+L_GAMMA = 0
+L_CRPS = 0
 
 LR_G = 1e-5  # Learning rate for the generator
 LR_D = 1e-5  # Learning rate for the discriminator
@@ -169,7 +167,7 @@ def cutmix(batch_S_CutMix, batch_H, d_S, d_H):
     bbx1, bby1, bbx2, bby2 = rand_bbox(batch_S_CutMix.size(), r_mix)
     batch_S_CutMix[:, :, bbx1:bbx2, bby1:bby2] = batch_H[:, :, bbx1:bbx2, bby1:bby2]
 
-    e_mix, d_mix, _, _ = model_D(batch_S_CutMix, None, None, None)
+    e_mix, d_mix, _, _ = model_D(batch_S_CutMix)
 
     loss_D_Enc_S = torch.nn.ReLU()(1.0 + e_mix).mean()
     loss_D_Dec_S = torch.nn.ReLU()(1.0 + d_mix).mean()
@@ -199,22 +197,7 @@ def get_patches(batch, lr, hr, patch_size, scaling_factor):
     return lr, hr
 ''''''
 
-def generate_sample(rain_prob, gamma_shape, gamma_scale):
-    B, C, H, W = rain_prob.shape  # 获取rain_prob的形状，B:批次大小, C:通道数, H:高度, W:宽度
-    rain_sample = torch.zeros_like(rain_prob)  # 初始化一个与rain_prob形状相同的零张量
-    
-    for b in range(B):
-        for h in range(H):
-            for w in range(W):
-                # 如果下雨概率小于0.5，即有可能下雨
-                if rain_prob[b, 0, h, w] < 0.5:
-                    # 计算伽玛分布的期望值
-                    expected_rainfall = gamma_shape[b, 0, h, w] / gamma_scale[b, 0, h, w]
-                    rain_sample[b, 0, h, w] = expected_rainfall * (1 - rain_prob[b, 0, h, w])
-                # 否则，降雨量为0
-                else:
-                    rain_sample[b, 0, h, w] = 0
-    return rain_sample
+
 
 
 
@@ -236,12 +219,10 @@ def discriminator_loss(model_G, model_D, batch_L, batch_H):
     # Get super-resolved batch (G(lr) ~ hr)
     #batch_S = model_G(batch_L)
     # 获取生成器的输出
-    rain_prob, gamma_shape, gamma_scale = model_G(batch_L)
-    # 生成样本估计值
-    batch_S = generate_sample(rain_prob, gamma_shape, gamma_scale)
+    batch_S = model_G(batch_L).detach()
     # Run the hr, and predicted sr images through the discriminator
-    e_S, d_S, _, _ = model_D(None, rain_prob, gamma_shape, gamma_scale)
-    e_H, d_H, _, _ = model_D(batch_H, None, None, None)
+    e_S, d_S, _, _ = model_D(batch_S)
+    e_H, d_H, _, _ = model_D(batch_H)
 
     # D Loss, for encoder end and decoder end
     loss_D_Enc_S = torch.nn.ReLU()(1.0 + e_S).mean()
@@ -308,22 +289,15 @@ def generator_loss(model_G, model_D, batch_L, batch_H):
     """
     
     # Get super-resolved batch (G(lr) ~ hr)
-    #batch_S = model_G(batch_L)
-       # 获取生成器的输出
-    rain_prob, gamma_shape, gamma_scale = model_G(batch_L)
-    # 生成样本估计值
-    batch_S = generate_sample(rain_prob, gamma_shape, gamma_scale)
-
+    batch_S = model_G(batch_L)
     # Run the hr, and predicted sr images through the discriminator
-    e_S, d_S, _, _ = model_D(batch_S, None, None, None)
+    e_S, d_S, _, _ = model_D(batch_S)
 
     # Pixel loss
     loss_Pixel = Huber(batch_S, batch_H)
     loss_G = loss_Pixel
     #log loss, ground truth and gamma distribution
-    loss_Log = log_loss(batch_H, rain_prob, gamma_shape, gamma_scale)
-
-    crps = crps_batch(batch_H, rain_prob, gamma_shape, gamma_scale)
+    #loss_Log = log_loss(batch_H, rain_prob, gamma_shape, gamma_scale)
 
     # GAN losses
     loss_Advs = []
@@ -331,7 +305,7 @@ def generator_loss(model_G, model_D, batch_L, batch_H):
     loss_Advs += [torch.nn.ReLU()(1.0 - d_S).mean() * L_ADV]
     loss_Adv = torch.mean(torch.stack(loss_Advs))
 
-    loss_G += loss_Adv + L_LOG * loss_Log + L_CRPS * crps
+    loss_G += loss_Adv
 
     return loss_G
 
@@ -399,11 +373,9 @@ def get_performance(model_G, dataloader, epoch, batch=-1):
             batch_L = Variable(torch.from_numpy(batch_L)).cuda()
             batch_L = torch.clamp(batch_L, 0., 1.)
 
-            # Forward pass through generator
-            rain_prob, gamma_shape, gamma_scale = model_G(batch_L)
-
-            # Generate sample estimate from the distribution
-            batch_Out = generate_sample(rain_prob, gamma_shape, gamma_scale).cpu().data.numpy()
+           # Forward
+            batch_Out = model_G(batch_L)
+            batch_Out = batch_Out.cpu().data.numpy()
             print("batch_Out shape", batch_Out.shape)
             batch_Out = np.clip(batch_Out, 0., 1.)
             # Process output and ground truth for metric calculation
@@ -416,14 +388,12 @@ def get_performance(model_G, dataloader, epoch, batch=-1):
             #batch_Out = np.transpose(batch_Out, [2, 0, 1])
             batch_Out = batch_Out.transpose(2, 0, 1)
             img_gt = np.squeeze(batch_H)
+            print("这一步骤是为了看看我的ACCESS预处理和AWAP有没有数量级差距")
 
             img_gt = np.expm1(img_gt * 7)  # Revert preprocessing on ground truth
             img_target = np.expm1(batch_Out * 7)  # Revert preprocessing on prediction
-            print("img_gt max value", np.max(img_gt), "img_target",np.max(img_target))
-            zero_count_gt = np.size(img_gt) - np.count_nonzero(img_gt)
-            zero_count_target = np.size(img_target) - np.count_nonzero(img_target)
-
-            print("Number of zero values in img_gt:", zero_count_gt,"Number of zero values in img_target:", zero_count_target)
+            print("img_gt max value", np.max(img_gt))
+            print("img_target",np.max(img_target))
 
             rmses.append(RMSE(img_gt, img_target, 0))
             maes.append(MAE(img_gt, img_target, 0))
@@ -516,7 +486,7 @@ if __name__ == "__main__":
     prepare_directories()
 
     ### Generator ###
-    model_G = G_arch.RRDBNetx4x2(1, 3, 64, 23, gc=32).cuda()
+    model_G = G_arch.RRDBNetx4x2(1, 1, 64, 23, gc=32).cuda()
     if torch.cuda.device_count() > 1:
         write_log("Using " + str(torch.cuda.device_count()) + " GPUs!")
         model_G = nn.DataParallel(model_G, range(torch.cuda.device_count()))
@@ -537,7 +507,7 @@ if __name__ == "__main__":
 
     ## Load saved params
     if START_ITER > 0:
-        lm = torch.load('{}/checkpoint/v{}/model_G_i{:06d}.pth'.format(SAVE_PREFIX + EXP_NAME, str(VERSION), START_ITER))
+        lm = torch.load('{}/checkpoint/v{}/original_model_G_i{:06d}.pth'.format(SAVE_PREFIX + EXP_NAME, str(VERSION), START_ITER))
         model_G.load_state_dict(lm.state_dict(), strict=True)
 
 

@@ -149,7 +149,7 @@ def main(year, month, day, data_type):
     
     if data_type == "predict":
         # 预测数据的路径
-        file_path = f"{base_path}TestResults/DESRGAN/vTestRefactored/model_G_i000003_best_20240122-153141/e01/{date_string}.nc"
+        file_path = f"{base_path}TestResults/DESRGAN/vTestRefactored/model_G_i000003_best_20240125-022940/e01/{date_string}.nc"
         title = f"predict_e01_data {date_string}"
     elif data_type == "awap":
         # AWAP 数据的路径
@@ -157,7 +157,7 @@ def main(year, month, day, data_type):
         title = f"AWAP_data {date_string}"
     elif data_type == "access":
         # ACCESS 数据的路径
-        file_path = f"{base_path}Processed_data/e01/{date_string}.nc"
+        file_path = f"{base_path}Processed_data/e02/{date_string}.nc"
         title = f"ACCESS_data {date_string}"
 
     # 加载数据
@@ -179,5 +179,9 @@ def main(year, month, day, data_type):
     draw_aus_pr(year, month, day, data_type, lat, lon, result, title=title, save=True, path=f"/home/599/xs5813/EXTREME/{data_type}_e01_{date_string}.jpeg")
 
 # 例如，要绘制 2002 年 1 月 1 日的预测数据
-main(2002, "08", "28", "predict")
+main(2002, "01", "25", "predict")
 #1994-07-16
+
+#not good data
+#gernerator loss: log loss -> model_G_i000003_best_20240125-022940
+

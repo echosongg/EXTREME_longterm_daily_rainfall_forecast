@@ -33,13 +33,17 @@ def main():
 
        
 
-            da_to_save = xr.DataArray(da_selected, dims=("lat", "lon"),
-                                    coords={
-                                        "lat": da_selected.lat, 
-                                        "lon": da_selected.lon
-                                    }, name='pr')
-            
-                        
+            lons, lats = np.meshgrid(da_selected.lon, da_selected.lat)
+            # 使用maskoceans掩盖海洋区域
+            da_masked = maskoceans(lons, lats, da_selected, inlands=False)
+
+            # 创建一个新的DataArray对象
+            da_to_save = xr.DataArray(da_masked, dims=("lat", "lon"),
+                          coords={
+                              "lat": da_selected.lat, 
+                              "lon": da_selected.lon
+                          }, name='pr')
+
             da_to_save.to_netcdf(os.path.join(output_directory, f"{leading_year}-{leading_month}-{leading_day}.nc"))
 
         # Close the dataset to free resources
