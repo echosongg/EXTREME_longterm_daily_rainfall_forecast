@@ -39,13 +39,13 @@ prcp_colours = [
 prcp_colormap = matplotlib.colors.ListedColormap(prcp_colours)
 #lon_range = (143,  154)
 #lat_range = (-32, -24)
-lon_range = (142.975,  154.275)
-lat_range = (-31.525, -23.975)
+lon_range = (142.000,  153.8)
+lat_range = (-31.95, -23.8)
 
 
 ##def draw_aus_pr(var,lat,lon,domain = [138, 156.275, -29, -9.975], mode="pr" , titles_on = True,\
 #                title = " precipation in 2012", colormap = prcp_colormap, cmap_label = "PR",save=False,path=""):
-def draw_aus_pr(year, month, day, data_type, lat, lon, var, domain=[142.975, 154.275, -31.525, -23.975], title="", \
+def draw_aus_pr(year, month, day, data_type, lat, lon, var, domain=[142, 153.8, -31.95, -23.8], title="", \
 save=False, path="", colormap = prcp_colormap, cmap_label = "PR", mode="pr", titles_on = True):
     """ basema_ploting .py
 This function takes a 2D data set of a variable from AWAP and maps the data on miller projection. 
@@ -149,7 +149,7 @@ def main(year, month, day, data_type):
     
     if data_type == "predict":
         # 预测数据的路径
-        file_path = f"{base_path}TestResults/DESRGAN/vTestRefactored/model_G_i000003_best_20240125-022940/e01/{date_string}.nc"
+        file_path = f"{base_path}TestResults/DESRGAN/vTestRefactored/model_G_i000003_best_20240124-163810/e01/{date_string}.nc"
         title = f"predict_e01_data {date_string}"
     elif data_type == "awap":
         # AWAP 数据的路径
@@ -157,7 +157,8 @@ def main(year, month, day, data_type):
         title = f"AWAP_data {date_string}"
     elif data_type == "access":
         # ACCESS 数据的路径
-        file_path = f"{base_path}Processed_data/e02/{date_string}.nc"
+        #file_path = f"{base_path}Processed_data/e01/{date_string}.nc"
+        file_path = "/home/599/xs5813/EXTREME/e01/2003-12-25.nc"
         title = f"ACCESS_data {date_string}"
 
     # 加载数据
@@ -179,7 +180,7 @@ def main(year, month, day, data_type):
     draw_aus_pr(year, month, day, data_type, lat, lon, result, title=title, save=True, path=f"/home/599/xs5813/EXTREME/{data_type}_e01_{date_string}.jpeg")
 
 # 例如，要绘制 2002 年 1 月 1 日的预测数据
-main(2002, "01", "25", "predict")
+main(2002, "01", "01", "predict")
 #1994-07-16
 
 #not good data

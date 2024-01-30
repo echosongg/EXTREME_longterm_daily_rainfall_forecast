@@ -1,6 +1,7 @@
 import numpy as np
 import xarray as xr
 import cv2
+from mpl_toolkits.basemap import maskoceans
 
 """
     Latitude and longitude ranges for case region (Australia).
@@ -10,7 +11,7 @@ import cv2
 #lon_range = (111.975,  156.275)
 #lat_range = (-44.525, -9.975)
 lon_range = (142.000,  153.8)
-lat_range = (-31.95, -23.8)
+lat_range = (-31.95, -23.4)
 #lon_range = (138,  156.275)
 #lat_range = (-29, -9.975)
 scale = 1.5
@@ -37,36 +38,29 @@ def select_data(da, lon_range=lon_range, lat_range=lat_range):
 
 def resize_data(data, time_value):
     """
-    Resizes the data array by a specified scale factor using cubic interpolation.
+    Resizes the data array by a specified scale factor using cubic interpolation and masks ocean areas.
 
     Parameters:
     - data (xarray.DataArray): The data array to be resized.
     - time_value (np.datetime64): The time value of the data array.
 
     Returns:
-    - xarray.DataArray: The resized data array.
+    - xarray.DataArray: The resized and ocean-masked data array.
     """
-    # Resize the data array using OpenCV
-    #new_shape = (86, 110) # Shift to same proportion as AWAP + 1.5x scale  60->40km???
     new_shape = (int(data.lat.size * scale), int(data.lon.size * scale))
-
-    # Resize using cubic interpolation (cv2 treats the shape as (width, height) instead of (height, width) hence the [::-1])
-    resized_values = cv2.resize(data.values, new_shape[::-1], interpolation=cv2.INTER_CUBIC) # todo - is this the right interpolation method? 
+    resized_values = cv2.resize(data.values, new_shape[::-1], interpolation=cv2.INTER_CUBIC)
     resized_values = np.clip(resized_values, 0, None)  # Clipping negative values
 
-    # Create new longitude and latitude arrays based on the new shape
-    new_lon = np.linspace(data.lon[0], data.lon[-1], new_shape[1]) 
-    new_lat = np.linspace(data.lat[0], data.lat[-1], new_shape[0]) 
+    new_lon = np.linspace(data.lon[0], data.lon[-1], new_shape[1])
+    new_lat = np.linspace(data.lat[0], data.lat[-1], new_shape[0])
 
-    coords = {
-        "lat": new_lat,
-        "lon": new_lon,
-        #"time": np.datetime_as_string(time_value, unit='D')[:-3] + "-01" # YYYY-MM-DD
-        "time": np.datetime_as_string(time_value, unit='D') 
-    }
+    # Create meshgrid for lons and lats
+    lons, lats = np.meshgrid(new_lon, new_lat)
+    # Mask ocean areas
+    resized_values_masked = maskoceans(lons, lats, resized_values, inlands=False)
 
-    # Create a new DataArray and return
-    return xr.DataArray(resized_values, dims=("lat", "lon"), coords=coords, name='pr') 
+    coords = {"lat": new_lat, "lon": new_lon, "time": np.datetime_as_string(time_value, unit='D')}
+    return xr.DataArray(resized_values_masked, dims=("lat", "lon"), coords=coords, name='pr')
 
 
 

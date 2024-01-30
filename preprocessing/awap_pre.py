@@ -3,6 +3,7 @@ import xarray as xr
 from preprocessing_utils import select_data
 import datetime
 import numpy as np
+from mpl_toolkits.basemap import maskoceans
 
 # Define input and output directories
 data_directory = "/g/data/zv2/agcd/v1/precip/total/r005/01day"
@@ -30,19 +31,11 @@ def main():
             da_raw = ds_raw.sel(time=time_value)['precip'] #/ get_days_in_month(f"{leading_year}-{leading_month}") # Average daily rainfall
             
             da_selected = select_data(da_raw)
-
-       
-
-            lons, lats = np.meshgrid(da_selected.lon, da_selected.lat)
-            # 使用maskoceans掩盖海洋区域
-            da_masked = maskoceans(lons, lats, da_selected, inlands=False)
-
-            # 创建一个新的DataArray对象
-            da_to_save = xr.DataArray(da_masked, dims=("lat", "lon"),
-                          coords={
-                              "lat": da_selected.lat, 
-                              "lon": da_selected.lon
-                          }, name='pr')
+            da_to_save = xr.DataArray(da_selected, dims=("lat", "lon"),
+                                    coords={
+                                        "lat": da_selected.lat, 
+                                        "lon": da_selected.lon
+                                    }, name='pr')
 
             da_to_save.to_netcdf(os.path.join(output_directory, f"{leading_year}-{leading_month}-{leading_day}.nc"))
 

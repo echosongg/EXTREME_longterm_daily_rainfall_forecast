@@ -38,7 +38,7 @@ UPSCALE = 8  # upscaling factor 40km->5km
 NB_BATCH = 3  # mini-batch
 NB_Iteration = 3 # Number of iterations (epochs)
 #PATCH_SIZE = 576  # Training patch size
-PATCH_SIZE = 128
+PATCH_SIZE = 160
 NB_THREADS = 36
 
 START_ITER = 0  # Set 0 for from scratch, else will load saved params and trains further
@@ -48,7 +48,7 @@ L_FM = 1  # Scaling params for the feature matching loss
 L_LPIPS = 1e-3  # Scaling params for the LPIPS loss
 #add gamma loss and CRPS loss
 L_LOG = 1e-3  # 权重参数 for the log loss
-L_CRPS = 0  # 权重参数 for the CRPS loss
+L_CRPS = 1e-3  # 权重参数 for the CRPS loss
 
 LR_G = 1e-5  # Learning rate for the generator
 LR_D = 1e-5  # Learning rate for the discriminator
@@ -199,18 +199,19 @@ def get_patches(batch, lr, hr, patch_size, scaling_factor):
     return lr, hr
 ''''''
 
-def generate_sample(rain_prob, gamma_shape, gamma_scale):
-    B, C, H, W = rain_prob.shape  # 获取rain_prob的形状，B:批次大小, C:通道数, H:高度, W:宽度
-    rain_sample = torch.zeros_like(rain_prob)  # 初始化一个与rain_prob形状相同的零张量
+def generate_sample(rain_prob, gamma_shape, gamma_scale, num_samples=100):
+    B, C, H, W = rain_prob.shape
+    rain_sample = torch.zeros_like(rain_prob)
     
     for b in range(B):
         for h in range(H):
             for w in range(W):
                 # 如果下雨概率小于0.5，即有可能下雨
                 if rain_prob[b, 0, h, w] < 0.5:
-                    # 计算伽玛分布的期望值
-                    expected_rainfall = gamma_shape[b, 0, h, w] / gamma_scale[b, 0, h, w]
-                    rain_sample[b, 0, h, w] = expected_rainfall * (1 - rain_prob[b, 0, h, w])
+                    # 创建一个伽玛分布对象
+                    gamma_dist = torch.distributions.Gamma(gamma_shape[b, 0, h, w], gamma_scale[b, 0, h, w])
+                    samples = gamma_dist.sample((num_samples,))  # 从伽玛分布中生成num_samples个样本
+                    rain_sample[b, 0, h, w] = samples.median()  # 计算这些样本的中值
                 # 否则，降雨量为0
                 else:
                     rain_sample[b, 0, h, w] = 0
@@ -315,11 +316,12 @@ def generator_loss(model_G, model_D, batch_L, batch_H):
     batch_S = generate_sample(rain_prob, gamma_shape, gamma_scale)
 
     # Run the hr, and predicted sr images through the discriminator
-    e_S, d_S, _, _ = model_D(batch_S, None, None, None)
+    e_S, d_S, _, _ = model_D(None, rain_prob, gamma_shape, gamma_scale)
 
     # Pixel loss
-    loss_Pixel = Huber(batch_S, batch_H)
-    loss_G = loss_Pixel
+    #loss_Pixel = Huber(batch_S, batch_H)
+    #loss_G = loss_Pixel
+    loss_G = 0
     #log loss, ground truth and gamma distribution
     loss_Log = log_loss(batch_H, rain_prob, gamma_shape, gamma_scale)
 
@@ -332,6 +334,7 @@ def generator_loss(model_G, model_D, batch_L, batch_H):
     loss_Adv = torch.mean(torch.stack(loss_Advs))
 
     loss_G += loss_Adv + L_LOG * loss_Log + L_CRPS * crps
+    #只有log_loss+没改的D
 
     return loss_G
 
@@ -388,6 +391,8 @@ def get_performance(model_G, dataloader, epoch, batch=-1):
         # Test for validation
         rmses = []
         maes = []
+        zero_counts_gt = []  # List to store number of zeros in ground truth
+        zero_counts_target = []  # List to store number of zeros in model output
 
         # Load test image
         for lr_val, hr_val, _, _ in dataloader:
@@ -410,7 +415,7 @@ def get_performance(model_G, dataloader, epoch, batch=-1):
             batch_Out = np.squeeze(batch_Out, axis = 1)
             #batch_Out = np.transpose(batch_Out, [1, 2, 0])
             batch_Out = batch_Out.transpose(1, 2, 0) # 688*880*16
-            batch_Out = cv2.resize(batch_Out, (226,151), interpolation=cv2.INTER_CUBIC)
+            batch_Out = cv2.resize(batch_Out, (237,172), interpolation=cv2.INTER_CUBIC)
             if len(batch_Out.shape) == 2:
                 batch_Out = batch_Out.reshape(batch_Out.shape[0], batch_Out.shape[1], 1)
             #batch_Out = np.transpose(batch_Out, [2, 0, 1])
@@ -426,6 +431,8 @@ def get_performance(model_G, dataloader, epoch, batch=-1):
 
             zero_count_gt = np.size(img_gt) - np.count_nonzero(img_gt)
             zero_count_target = np.size(img_target) - np.count_nonzero(img_target)
+            zero_counts_gt.append(zero_count_gt)
+            zero_counts_target.append(zero_count_target)
 
             print("Number of zero values in img_gt:", zero_count_gt)
             print("Number of zero values in img_target:", zero_count_target)
@@ -436,8 +443,10 @@ def get_performance(model_G, dataloader, epoch, batch=-1):
             
         rmse = np.mean(np.asarray(rmses))
         mae = np.mean(np.asarray(maes))
+        avg_zero_count_gt = np.mean(zero_counts_gt)
+        avg_zero_count_target = np.mean(zero_counts_target)
         
-        write_log(f"RMSE: {rmse} MAE: {mae} for epoch {epoch}{f' batch {batch}' if batch != -1 else ''}. Completed in {time.time() - itr_test_time} seconds")
+        write_log(f"RMSE: {rmse} MAE: {mae} Avg Zero Count in GT: {avg_zero_count_gt} Avg Zero Count in Output: {avg_zero_count_target} for epoch {epoch}{f' batch {batch}' if batch != -1 else ''}. Completed in {time.time() - itr_test_time} seconds")
 
         return rmse, mae
 
@@ -476,9 +485,6 @@ def train_GAN(model_G, model_D, opt_G, opt_D, train_dataloders, val_dataloders, 
 
             # Get patches for training
             lr, hr = get_patches(batch_number, lr, hr, PATCH_SIZE, UPSCALE)
-            print("after get patch shape")
-            print("lr shape", lr.shape)
-            print("hr shape", hr.shape)
 
 
             # Train discriminator then generator

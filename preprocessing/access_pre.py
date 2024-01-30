@@ -7,7 +7,7 @@ import cv2
 
 
 # Define the ensemble models and directories
-ensemble = ["e09"]
+ensemble = ["e02","e03"]
 print("ensemble",ensemble)
 input_directory = "/g/data/ux62/access-s2/hindcast/raw_model/atmos/pr/daily/"
 output_directory = "/scratch/iu60/xs5813/Processed_data/"

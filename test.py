@@ -18,10 +18,10 @@ import argparse
 SAVE_PREFIX = "/scratch/iu60/xs5813/EXTREME_MODEL_VERSION/"
 TEST_SAVE_PREFIX = "/scratch/iu60/xs5813/TestResults/"
 MODEL_PREFIX = SAVE_PREFIX + "version_0/checkpoint/" + "v" 
-TESTING_DATA = "/scratch/iu60/xs5813/Processed_data/e*/*.nc"
+TESTING_DATA = "/scratch/iu60/xs5813/Processed_data/e01/*.nc"
 
-australia_lon_range = (142.975,  154.275)
-australia_lat_range = (-31.525, -23.975)
+australia_lon_range = (142.000,  153.8)
+australia_lat_range = (-31.95, -23.4)
 scale = 1.5
 
 def make_directories(model_name: str, version:str) -> None:
@@ -43,9 +43,9 @@ def make_directories(model_name: str, version:str) -> None:
         if not isdir(TEST_SAVE_PREFIX + "DESRGAN" + "/" + "v" + version + "/" + model_name.split(".")[0] + "/" + en):
             mkdir(TEST_SAVE_PREFIX + "DESRGAN" + "/" + "v" + version + "/" + model_name.split(".")[0] + "/" + en)
 
-def generate_sample(rain_prob, gamma_shape, gamma_scale, num_samples=2000):
-    B, C, H, W = rain_prob.shape  # 获取rain_prob的形状，B:批次大小, C:通道数, H:高度, W:宽度
-    rain_sample = torch.zeros_like(rain_prob)  # 初始化一个与rain_prob形状相同的零张量
+def generate_sample(rain_prob, gamma_shape, gamma_scale, num_samples=100):
+    B, C, H, W = rain_prob.shape
+    rain_sample = torch.zeros_like(rain_prob)
     
     for b in range(B):
         for h in range(H):
@@ -54,13 +54,13 @@ def generate_sample(rain_prob, gamma_shape, gamma_scale, num_samples=2000):
                 if rain_prob[b, 0, h, w] < 0.5:
                     # 创建一个伽玛分布对象
                     gamma_dist = torch.distributions.Gamma(gamma_shape[b, 0, h, w], gamma_scale[b, 0, h, w])
-                    # 计算伽玛分布的期望值
-                    expected_rainfall = gamma_shape[b, 0, h, w] / gamma_scale[b, 0, h, w]
-                    rain_sample[b, 0, h, w] = expected_rainfall * (1 - rain_prob[b, 0, h, w])
+                    samples = gamma_dist.sample((num_samples,))  # 从伽玛分布中生成num_samples个样本
+                    rain_sample[b, 0, h, w] = samples.median()  # 计算这些样本的中值
                 # 否则，降雨量为0
                 else:
                     rain_sample[b, 0, h, w] = 0
     return rain_sample
+
 
 
 def generate_batch(model_G, da_selected):
@@ -89,7 +89,7 @@ def generate_batch(model_G, da_selected):
     # Resize and convert back to DataArray
     slice_output = slice_output.cpu().data.numpy()
     slice_output = np.clip(slice_output[0], 0., 1.)
-    slice_output = cv2.resize(np.squeeze(slice_output), (226,151), interpolation=cv2.INTER_CUBIC)
+    slice_output = cv2.resize(np.squeeze(slice_output), (237,172), interpolation=cv2.INTER_CUBIC)
     slice_output = np.clip(slice_output, 0, 1)
     
     return slice_output
@@ -124,7 +124,7 @@ def resize_data(data, time_value):
 
     # Resize data to target shape
     #new_shape = (215,161)  # Target width and height
-    new_shape = (226,151)
+    new_shape = (237,172)
     resized_values = np.asarray(data).astype(np.float32)
     resized_values = cv2.resize(resized_values, new_shape, interpolation=cv2.INTER_CUBIC)
     if not isinstance(time_value, np.datetime64):
@@ -141,7 +141,7 @@ def resize_data(data, time_value):
     # Return resized data array
     return xr.DataArray(resized_values, dims=("lat", "lon"), coords=coords, name='pr')
 
-def test_model(model_G_name: str, version: str, year: int) -> None:
+def test_model(model_G_name: str, version: str, year: int, month: int) -> None:
     """
         For all ACCESS-S2 data in the given year, run the model and save the results
 
@@ -149,6 +149,7 @@ def test_model(model_G_name: str, version: str, year: int) -> None:
             model_G_name (str): model name
             version (str): version
             year (int): year to test on
+            month(int): month to test on
     """
     
     # Make directories
@@ -168,7 +169,8 @@ def test_model(model_G_name: str, version: str, year: int) -> None:
 
     # Get all files in the given year for all ensemble
     testing_data = glob.glob(TESTING_DATA)
-    testing_data = [f for f in testing_data if str(year) in f]
+    testing_data = [f for f in testing_data if f"{year}-{str(month).zfill(2)}" in f]
+
 
     np.random.shuffle(testing_data)
 
@@ -229,4 +231,4 @@ if __name__ == "__main__":
     #version = "TrainingIterationRMSETest"
     version = "TestRefactored"
 
-    test_model(model_G_name, version, 2002)
+    test_model(model_G_name, version, 2002, 12)

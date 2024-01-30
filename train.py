@@ -15,6 +15,7 @@ import torch.optim as optim
 from torch.autograd import Variable
 import numpy as np
 import time
+import math
 from os import mkdir
 from os.path import isdir
 from torch.utils.data import random_split, DataLoader
@@ -48,7 +49,7 @@ L_FM = 1  # Scaling params for the feature matching loss
 L_LPIPS = 1e-3  # Scaling params for the LPIPS loss
 #add gamma loss and CRPS loss
 L_LOG = 1e-3  # 权重参数 for the log loss
-L_CRPS = 1e-3  # 权重参数 for the CRPS loss
+L_CRPS = 1e-3   # 权重参数 for the CRPS loss
 
 LR_G = 1e-5  # Learning rate for the generator
 LR_D = 1e-5  # Learning rate for the discriminator
@@ -160,7 +161,7 @@ def cutmix(batch_S_CutMix, batch_H, d_S, d_H):
 
     """
 
-    print("Performing CutMix")
+    #print("Performing CutMix")
 
     r_mix = torch.rand(1)  # real/fake ratio
     # adjust lambda to exactly match pixel ratio
@@ -199,24 +200,23 @@ def get_patches(batch, lr, hr, patch_size, scaling_factor):
     return lr, hr
 ''''''
 
-def generate_sample(rain_prob, gamma_shape, gamma_scale):
-    B, C, H, W = rain_prob.shape  # 获取rain_prob的形状，B:批次大小, C:通道数, H:高度, W:宽度
-    rain_sample = torch.zeros_like(rain_prob)  # 初始化一个与rain_prob形状相同的零张量
+def generate_sample(rain_prob, gamma_shape, gamma_scale, num_samples=100):
+    B, C, H, W = rain_prob.shape
+    rain_sample = torch.zeros_like(rain_prob)
     
     for b in range(B):
         for h in range(H):
             for w in range(W):
                 # 如果下雨概率小于0.5，即有可能下雨
                 if rain_prob[b, 0, h, w] < 0.5:
-                    # 计算伽玛分布的期望值
-                    expected_rainfall = gamma_shape[b, 0, h, w] / gamma_scale[b, 0, h, w]
-                    rain_sample[b, 0, h, w] = expected_rainfall * (1 - rain_prob[b, 0, h, w])
+                    # 创建一个伽玛分布对象
+                    gamma_dist = torch.distributions.Gamma(gamma_shape[b, 0, h, w], gamma_scale[b, 0, h, w])
+                    samples = gamma_dist.sample((num_samples,))  # 从伽玛分布中生成num_samples个样本
+                    rain_sample[b, 0, h, w] = samples.median()  # 计算这些样本的中值
                 # 否则，降雨量为0
                 else:
                     rain_sample[b, 0, h, w] = 0
     return rain_sample
-
-
 
 
 
@@ -321,9 +321,17 @@ def generator_loss(model_G, model_D, batch_L, batch_H):
     loss_Pixel = Huber(batch_S, batch_H)
     loss_G = loss_Pixel
     #log loss, ground truth and gamma distribution
-    loss_Log = log_loss(batch_H, rain_prob, gamma_shape, gamma_scale)
+    #loss_Log = log_loss(batch_H, rain_prob, gamma_shape, gamma_scale)
 
-    crps = crps_batch(batch_H, rain_prob, gamma_shape, gamma_scale)
+    loss_Pixel_value = loss_Pixel.item() if loss_Pixel.item() != 0 else 1e-100
+    #loss_Log_value = loss_Log.item() if loss_Log.item() != 0 else 1e-100
+    
+
+
+    #crps = crps_batch(batch_H, rain_prob, gamma_shape, gamma_scale)
+    #CRPS_value = crps.item() if crps.item() != 0 else 1e-100
+    # 打印损失的对数值
+    #print(f"两个损失的数量级。Pixel Loss: {math.log10(loss_Pixel_value):.2f}, CRPS Loss: {math.log10(L_CRPS * CRPS_value):.2f}")
 
     # GAN losses
     loss_Advs = []
@@ -331,7 +339,7 @@ def generator_loss(model_G, model_D, batch_L, batch_H):
     loss_Advs += [torch.nn.ReLU()(1.0 - d_S).mean() * L_ADV]
     loss_Adv = torch.mean(torch.stack(loss_Advs))
 
-    loss_G += loss_Adv + L_LOG * loss_Log + L_CRPS * crps
+    loss_G += loss_Adv  + L_CRPS * crps #+ L_LOG * loss_Log
 
     return loss_G
 
@@ -404,13 +412,14 @@ def get_performance(model_G, dataloader, epoch, batch=-1):
 
             # Generate sample estimate from the distribution
             batch_Out = generate_sample(rain_prob, gamma_shape, gamma_scale).cpu().data.numpy()
-            print("batch_Out shape", batch_Out.shape)
+            #print("batch_Out shape", batch_Out.shape)
             batch_Out = np.clip(batch_Out, 0., 1.)
             # Process output and ground truth for metric calculation
             batch_Out = np.squeeze(batch_Out, axis = 1)
             #batch_Out = np.transpose(batch_Out, [1, 2, 0])
             batch_Out = batch_Out.transpose(1, 2, 0) # 688*880*16
-            batch_Out = cv2.resize(batch_Out, (226,151), interpolation=cv2.INTER_CUBIC)
+            batch_Out = cv2.resize(batch_Out, (237,172), interpolation=cv2.INTER_CUBIC)
+            #(3,164,237) (3,172,237) 
             if len(batch_Out.shape) == 2:
                 batch_Out = batch_Out.reshape(batch_Out.shape[0], batch_Out.shape[1], 1)
             #batch_Out = np.transpose(batch_Out, [2, 0, 1])

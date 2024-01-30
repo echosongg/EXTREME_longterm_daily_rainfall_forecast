@@ -87,7 +87,7 @@ def log_loss(batch_H, p_pred, alpha_pred, beta_pred, epsilon=1e-6):
     beta_pred = beta_pred.detach().cpu().numpy()
 
     # Here we assume rainfall if the predicted probability is less than 0.5
-    p_true = (p_pred < 0.5).astype(float)
+    p_true = (batch_H > 0).astype(float)
     term1 = (1 - p_true) * np.log(1 - p_pred + epsilon)
     term2 = p_true * (np.log(p_pred + epsilon) + (alpha_pred - 1) * np.log(batch_H + epsilon) - batch_H / (beta_pred + epsilon) - alpha_pred * np.log(beta_pred + epsilon) - scipy.special.gammaln(alpha_pred + epsilon))
     loss = term1 + term2
@@ -116,7 +116,8 @@ def gamma_cdf(x, alpha, beta):
 def crps_gamma(observation, p_pred, alpha_pred, beta_pred):
     """calculate CRPS"""
     def crps_integral(x):
-        pred_cdf = p_pred * gamma_cdf(x, alpha_pred, beta_pred)
+        pred_cdf = p_pred + (1 - p_pred) * gamma_cdf(x, alpha_pred, beta_pred)
+        #pred_cdf = p_pred * gamma_cdf(x, alpha_pred, beta_pred)
         obs_cdf = np.heaviside(x - observation, 0.5)
         result = (pred_cdf - obs_cdf) ** 2
         return result
@@ -271,9 +272,11 @@ class ACCESS_AWAP_GAN(Dataset):
 def read_awap_data(root_dir, date_time):
 
     filename = root_dir + date_time.strftime("%Y-%m-%d") + ".nc"
+    #print("awap filename",filename)
     dataset = xr.open_dataset(filename)
     
     var = dataset['pr'].values
+    #print(f"AWAP data stats - Max: {np.max(var)}, Min: {np.min(var)}")
     #print("AWAP data shape (before processing):", var.shape)
     #这里除以4是干啥
     var = (np.log1p(var)) / 7 # log1p(x) to fix skew in distribution, /4 to scale roughly to [0,1]
@@ -304,33 +307,10 @@ def read_access_data(root_dir, en, date_time, leading):
 
     # rescale to [0,1]
     var = dataset.isel(time=leading)['pr'].values
+    #print(f"ACCESS data stats - Max: {np.max(var)}, Min: {np.min(var)}")
     #print("ACCESS data shape (before processing):", var.shape)
     var = (np.log1p(var)) / 7 # log1p(x) to fix skew in distribution, /4 to scale roughly to [0,1]
     
     var = var[np.newaxis, :, :].astype(np.float32)  # CxLATxLON
-
     dataset.close()
     return var
-
-'''def read_awap_data(root_dir, date_time):
-    """
-        Reads AWAP data from netcdf file, applies preprocessing steps (log1p, scaling) and returns data as numpy array.
-
-        Args: 
-            root_dir (str): root directory of AWAP data
-            date_time (datetime.date): date of AWAP data to be read
-        
-        Returns:
-            var (np.ndarray): numpy array of AWAP data
-    """
-
-    # Get the filename of the netcdf file
-    filename = root_dir + date_time.strftime("%Y-%m") + ".nc"
-    dataset = xr.open_dataset(filename)
-    
-    var = dataset['precip'].values
-    var = (np.log1p(var)) / 4 # log1p(x) to fix skew in distribution, /4 to scale roughly to [0,1]
-    var = var[np.newaxis, :, :].astype(np.float32)  # CxLATxLON
-    dataset.close()
-
-    return var'''
