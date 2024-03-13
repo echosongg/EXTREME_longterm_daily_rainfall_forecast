@@ -3,11 +3,10 @@ import xarray as xr
 from preprocessing_utils import select_data
 import datetime
 import numpy as np
-from mpl_toolkits.basemap import maskoceans
 
 # Define input and output directories
 data_directory = "/g/data/zv2/agcd/v1/precip/total/r005/01day"
-output_directory = "/scratch/iu60/xs5813/Awap_pre_data/"
+output_directory = "/scratch/iu60/xs5813/Awap_pre_data_bigger/"
 
 
 def main():

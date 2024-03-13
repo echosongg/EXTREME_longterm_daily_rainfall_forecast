@@ -113,6 +113,7 @@ class UnetD(torch.nn.Module):
                 m.bias.data.fill_(0)
 
     def forward(self, x):
+        print("x shape", x.shape)
         e1 = self.enc_b1(x)
         e2 = self.enc_b2(e1)
         e3 = self.enc_b3(e2)

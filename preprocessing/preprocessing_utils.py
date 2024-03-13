@@ -6,14 +6,13 @@ from mpl_toolkits.basemap import maskoceans
 """
     Latitude and longitude ranges for case region (Australia).
 """
-#经度范围：大约从东经 138 度到东经 153 度。
-#纬度范围：大约从南纬 29 度到南纬 10.5 度。
-#lon_range = (111.975,  156.275)
-#lat_range = (-44.525, -9.975)
-lon_range = (142.000,  153.8)
-lat_range = (-31.95, -23.4)
-#lon_range = (138,  156.275)
-#lat_range = (-29, -9.975)
+#my region
+#lon_range = (142,  152.3)
+#lat_range = (-31.95, -23.4)
+#Yaozhong region
+lon_range = (140.6, 153.9)
+lat_range = (-39.2, -18.6)
+
 scale = 1.5
 
 def select_data(da, lon_range=lon_range, lat_range=lat_range):
@@ -48,19 +47,21 @@ def resize_data(data, time_value):
     - xarray.DataArray: The resized and ocean-masked data array.
     """
     new_shape = (int(data.lat.size * scale), int(data.lon.size * scale))
-    resized_values = cv2.resize(data.values, new_shape[::-1], interpolation=cv2.INTER_CUBIC)
+        # Resize using cubic interpolation (cv2 treats the shape as (width, height) instead of (height, width) hence the [::-1])
+    resized_values = cv2.resize(data.values, new_shape[::-1], interpolation=cv2.INTER_CUBIC) # todo - is this the right interpolation method? 
     resized_values = np.clip(resized_values, 0, None)  # Clipping negative values
 
-    new_lon = np.linspace(data.lon[0], data.lon[-1], new_shape[1])
-    new_lat = np.linspace(data.lat[0], data.lat[-1], new_shape[0])
+    new_lon = np.linspace(data.lon[0], data.lon[-1], new_shape[1]) 
+    new_lat = np.linspace(data.lat[0], data.lat[-1], new_shape[0]) 
 
-    # Create meshgrid for lons and lats
-    lons, lats = np.meshgrid(new_lon, new_lat)
-    # Mask ocean areas
-    resized_values_masked = maskoceans(lons, lats, resized_values, inlands=False)
-
-    coords = {"lat": new_lat, "lon": new_lon, "time": np.datetime_as_string(time_value, unit='D')}
-    return xr.DataArray(resized_values_masked, dims=("lat", "lon"), coords=coords, name='pr')
+    coords = {
+        "lat": new_lat,
+        "lon": new_lon,
+        #"time": np.datetime_as_string(time_value, unit='D')[:-3] + "-01" # YYYY-MM-DD
+        "time": np.datetime_as_string(time_value, unit='D') 
+    }
+    # Create a new DataArray and return
+    return xr.DataArray(resized_values, dims=("lat", "lon"), coords=coords, name='pr') 
 
 
 

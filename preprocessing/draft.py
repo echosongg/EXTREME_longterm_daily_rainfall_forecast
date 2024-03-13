@@ -7,14 +7,13 @@ import cv2
 
 
 # Define the ensemble models and directories
-ensemble = ["e01"]
+ensemble = ["e01","e02"]
 print("ensemble",ensemble)
 input_directory = "/g/data/ux62/access-s2/hindcast/raw_model/atmos/pr/daily/"
-output_directory = "../"
+output_directory = "/scratch/iu60/xs5813/maskocean_access"
 
 def main():
     # Iterate through each ensemble member
-    num = 0
     for exx in ensemble:
         exx_directory = os.path.join(input_directory, exx) # Path + ensemble member
 
@@ -48,8 +47,6 @@ def main():
                                 
                 ds_total.append(da_to_save)
                 print(time_value)
-                num =  num + 1
-                break
 
             # Merge the DataArrays into a single dataset
             ds_total = xr.concat(ds_total, dim='time')
@@ -57,8 +54,6 @@ def main():
             # Save and close
             ds_total.to_netcdf(target_path)
             ds_raw.close()
-            if num == 5:
-                break
 
 
 if __name__ == "__main__":
@@ -71,30 +66,3 @@ if __name__ == "__main__":
 
     # Preprocess the data
     main()
-
-
-
-'''# 假设你有一个 ACCESS 数据文件的路径
-access_data_file = '/scratch/iu60/xs5813/Awap_pre_data/1988-05-28.nc'  # 替换为你的文件路径
-
-# 使用 xarray 打开数据文件
-ds = xr.open_dataset(access_data_file)
-    
-var = ds['pr'].values
-print(f"AWAP data stats - Max: {np.max(var)}, Min: {np.min(var)}")
-
-# 打印数据集的概要信息
-print(ds)
-
-# 打印数据集的维度
-print("\nDimensions:")
-print(ds.dims)
-
-# 打印数据集中的变量
-print("\nVariables:")
-print(ds.data_vars)
-
-# 打印数据集的属性
-print("\nAttributes:")
-print(ds.attrs)
-'''

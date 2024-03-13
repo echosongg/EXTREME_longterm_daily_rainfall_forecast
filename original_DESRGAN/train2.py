@@ -20,7 +20,7 @@ from os.path import isdir
 from torch.utils.data import random_split, DataLoader
 from datetime import date
 from datetime import datetime
-from utils import Huber, ACCESS_AWAP_GAN, RMSE, MAE, log_loss
+from utils import Huber, ACCESS_AWAP_GAN, RMSE, MAE
 import cv2
 import RRDBNet_arch2 as G_arch
 import UNET_arch2 as D_arch
@@ -36,7 +36,7 @@ UPSCALE = 8  # upscaling factor 40km->5km
 NB_BATCH = 3  # mini-batch
 NB_Iteration = 10 # Number of iterations (epochs)
 #PATCH_SIZE = 576  # Training patch size
-PATCH_SIZE = 128
+PATCH_SIZE = 256
 NB_THREADS = 36
 
 START_ITER = 0  # Set 0 for from scratch, else will load saved params and trains further
@@ -82,7 +82,7 @@ def write_log(log):
             log: log to be written
     """
     print(log)
-    my_log_file = open("./save/" + VERSION + '/train.txt', 'a')
+    my_log_file = open("./save/" + VERSION + '/train_more_esemble_6_leadingtime1_6.txt', 'a')
     my_log_file.write(log + '\n')
     my_log_file.close()
 
@@ -180,8 +180,6 @@ def cutmix(batch_S_CutMix, batch_H, d_S, d_H):
 def get_patches(batch, lr, hr, patch_size, scaling_factor):
 
     np.random.seed(batch)
-    print("Low Resolution Image Size: ", lr.shape)
-    print("High Resolution Image Size: ", hr.shape)
     #Low Resolution Image Size:  torch.Size([3, 1, 22, 18])
     #High Resolution Image Size:  torch.Size([3, 1, 161, 215])
     # 确保随机坐标加上补丁尺寸不会超出边界
@@ -196,12 +194,6 @@ def get_patches(batch, lr, hr, patch_size, scaling_factor):
 
     return lr, hr
 ''''''
-
-
-
-
-
-
 
 def discriminator_loss(model_G, model_D, batch_L, batch_H):
     """
@@ -296,8 +288,7 @@ def generator_loss(model_G, model_D, batch_L, batch_H):
     # Pixel loss
     loss_Pixel = Huber(batch_S, batch_H)
     loss_G = loss_Pixel
-    #log loss, ground truth and gamma distribution
-    #loss_Log = log_loss(batch_H, rain_prob, gamma_shape, gamma_scale)
+    print(f"Huber Loss: {loss_Pixel.item()}")
 
     # GAN losses
     loss_Advs = []
@@ -382,7 +373,7 @@ def get_performance(model_G, dataloader, epoch, batch=-1):
             batch_Out = np.squeeze(batch_Out, axis = 1)
             #batch_Out = np.transpose(batch_Out, [1, 2, 0])
             batch_Out = batch_Out.transpose(1, 2, 0) # 688*880*16
-            batch_Out = cv2.resize(batch_Out, (226,151), interpolation=cv2.INTER_CUBIC)
+            batch_Out = cv2.resize(batch_Out, (267,413), interpolation=cv2.INTER_CUBIC)
             if len(batch_Out.shape) == 2:
                 batch_Out = batch_Out.reshape(batch_Out.shape[0], batch_Out.shape[1], 1)
             #batch_Out = np.transpose(batch_Out, [2, 0, 1])
@@ -390,8 +381,8 @@ def get_performance(model_G, dataloader, epoch, batch=-1):
             img_gt = np.squeeze(batch_H)
             print("这一步骤是为了看看我的ACCESS预处理和AWAP有没有数量级差距")
 
-            img_gt = np.expm1(img_gt * 7)  # Revert preprocessing on ground truth
-            img_target = np.expm1(batch_Out * 7)  # Revert preprocessing on prediction
+            img_gt = np.expm1(img_gt * 7) # Revert preprocessing on ground truth
+            img_target = np.expm1(batch_Out * 7) # Revert preprocessing on prediction
             print("img_gt max value", np.max(img_gt))
             print("img_target",np.max(img_target))
 
@@ -444,7 +435,6 @@ def train_GAN(model_G, model_D, opt_G, opt_D, train_dataloders, val_dataloders, 
             print("lr shape", lr.shape)
             print("hr shape", hr.shape)
 
-
             # Train discriminator then generator
             discriminator_iteration(model_G, model_D, opt_G, opt_D, lr, hr)
             generator_iteration(model_G, model_D, opt_G, opt_D, lr, hr)
@@ -484,6 +474,7 @@ def train_GAN(model_G, model_D, opt_G, opt_D, train_dataloders, val_dataloders, 
 if __name__ == "__main__":
     # Prepare directories
     prepare_directories()
+    print("这是DESRGAN的原始模型, 只用夏季数据训练")
 
     ### Generator ###
     model_G = G_arch.RRDBNetx4x2(1, 1, 64, 23, gc=32).cuda()
@@ -525,9 +516,4 @@ if __name__ == "__main__":
 
     # Train the GAN model
     train_GAN(model_G, model_D, opt_G, opt_D, train_dataloders, val_dataloders, test_dataloders, NB_Iteration)
-
-
-
-
-    
     

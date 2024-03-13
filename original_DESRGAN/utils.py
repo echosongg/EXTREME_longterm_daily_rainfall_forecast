@@ -64,48 +64,6 @@ def MAE(y_true, y_pred, shave_border=4):
 
     return mae
 
-def log_loss(batch_H, p_pred, alpha_pred, beta_pred, epsilon=1e-6):
-    """
-    Calculate the log-likelihood loss for a Bernoulli-Gamma distribution.
-
-    Args:
-        batch_H: The actual rainfall data.
-        p_pred: The predicted probability of rainfall from the neural network.
-        alpha_pred: The predicted shape parameter of the Gamma distribution.
-        beta_pred: The predicted scale parameter of the Gamma distribution.
-        epsilon: A small value for numerical stability.
-
-    Returns:
-        The calculated loss.
-    """
-    batch_H = batch_H.detach().cpu().numpy()
-    p_pred = p_pred.detach().cpu().numpy()
-    alpha_pred = alpha_pred.detach().cpu().numpy()
-    beta_pred = beta_pred.detach().cpu().numpy()
-
-    p_true = (batch_H > 0).astype(float)  # Convert batch_H to a binary rainfall variable
-    term1 = (1 - p_true) * np.log(1 - p_pred + epsilon)
-    term2 = p_true * (np.log(p_pred + epsilon) + (alpha_pred - 1) * np.log(batch_H + epsilon) + alpha_pred * np.log(beta_pred + epsilon) - scipy.special.gammaln(alpha_pred + epsilon) - batch_H / (beta_pred + epsilon))
-    loss = term1 + term2
-    return -np.mean(loss)
-
-
-
-def CRPS(y_true, y_pred, shave_border=4):
-    '''
-        Input must be 0-255, 2D
-    '''
-
-    target_data = np.array(y_true, dtype=np.float32)
-    ref_data = np.array(y_pred, dtype=np.float32)
-
-    diff = ref_data - target_data
-    if shave_border > 0:
-        diff = diff[shave_border:-shave_border, shave_border:-shave_border]
-    crps = xs.crps_ensemble(target_data, diff)
-
-    return crps
-
 def Huber(input, target, delta=0.01, reduce=True):
     abs_error = torch.abs(input - target)
     quadratic = torch.clamp(abs_error, max=delta)
@@ -138,34 +96,35 @@ def date_range(start_date, end_date):
 '''在 read_access_data 函数中的应用: 在这个函数中，您使用 dataset.isel(time=leading)['pr'].values 从 ACCESS 数据集中选取了具有特定 leading time 的预测数据。
 这意味着如果 leading 参数为 1，则函数将返回模型启动后第二个时间点（考虑到索引从 0 开始）的预测数据。'''
 class ACCESS_AWAP_GAN(Dataset):
-    #这要改
-    def __init__(self, start_date, end_date, regin="AUS", lr_transform=None, hr_transform=None, shuffle=True,
-                 access_dir = "/scratch/iu60/xs5813/Processed_data/",
-                    awap_dir = "/scratch/iu60/xs5813/Awap_pre_data/"):
+    def __init__(self, start_date, end_date, region="AUS", lr_transform=None, hr_transform=None, shuffle=True,
+                 access_dir="/scratch/iu60/xs5813/Processed_data_bigger/", awap_dir="/scratch/iu60/xs5813/Awap_pre_data_bigger/",
+                 summer=True):  # 添加summer参数
         # Data locations
         print("=> ACCESS_S1 & AWAP loading")
         print("=> from " + start_date.strftime("%Y/%m/%d") + " to " + end_date.strftime("%Y/%m/%d") + "")
-        self.file_ACCESS_dir = access_dir 
+        self.file_ACCESS_dir = access_dir
         self.file_AWAP_dir = awap_dir
 
-        # self.regin = regin0
         self.start_date = start_date
         self.end_date = end_date
+        self.summer = summer  # 保存summer到实例变量
 
         # Transforms
         self.lr_transform = lr_transform if lr_transform else transforms.Compose([transforms.ToTensor()])
         self.hr_transform = hr_transform if hr_transform else transforms.Compose([transforms.ToTensor()])
 
         # Data
-        #这里可以改一下
-        self.leading_time_we_use = 1
-        self.ensemble = ['e01']
+        self.leading_time_we_use = 6
+        self.ensemble = ['e01', 'e02', 'e03']
         self.dates = date_range(start_date, end_date)
+
+        if summer:  # 如果summer为True，则过滤夏季月份
+            self.dates = [date for date in self.dates if date.month in [10, 11, 12, 1, 2, 3]]
 
         if not os.path.exists(self.file_ACCESS_dir):
             print(self.file_ACCESS_dir + "pr/daily/")
             print("no file or no permission")
-        
+
         self.filename_list = self.get_filename_with_time_order(self.file_ACCESS_dir)
 
         assert len(self.filename_list) > 0, "No data found in " + self.file_ACCESS_dir
@@ -191,7 +150,7 @@ class ACCESS_AWAP_GAN(Dataset):
             for date in self.dates:
                 access_path = rootdir + ens + "/" + date.strftime("%Y-%m-%d") + ".nc"
                 if os.path.exists(access_path):
-                    for lead_time in range(self.leading_time_we_use + 1): # 0 - leading_time_we_use
+                    for lead_time in range(1, self.leading_time_we_use + 1): # 0 - leading_time_we_use
                         
                         hr_lr_data = (
                             ens, # Ensemble
@@ -231,17 +190,17 @@ class ACCESS_AWAP_GAN(Dataset):
 def read_awap_data(root_dir, date_time):
 
     filename = root_dir + date_time.strftime("%Y-%m-%d") + ".nc"
+    #print("awap filename",filename)
     dataset = xr.open_dataset(filename)
-    
+    dataset = dataset.fillna(0)
     var = dataset['pr'].values
+    #print(f"AWAP data stats - Max: {np.max(var)}, Min: {np.min(var)}")
     #print("AWAP data shape (before processing):", var.shape)
     #这里除以4是干啥
     var = (np.log1p(var)) / 7 # log1p(x) to fix skew in distribution, /4 to scale roughly to [0,1]
     var = var[np.newaxis, :, :].astype(np.float32)  # CxLATxLON
-    
     dataset.close()
     return var
-
 
 
 def read_access_data(root_dir, en, date_time, leading):
@@ -261,36 +220,16 @@ def read_access_data(root_dir, en, date_time, leading):
     # Get the filename of the netcdf file
     filename = root_dir + en + "/" + date_time.strftime("%Y-%m-%d") + ".nc"
     dataset = xr.open_dataset(filename)
+    dataset = dataset.fillna(0)
 
     # rescale to [0,1]
     var = dataset.isel(time=leading)['pr'].values
+    var = np.clip(var, 0, 1000)
+    #print(f"ACCESS data stats - Max: {np.max(var)}, Min: {np.min(var)}")
     #print("ACCESS data shape (before processing):", var.shape)
     var = (np.log1p(var)) / 7 # log1p(x) to fix skew in distribution, /4 to scale roughly to [0,1]
+    var = cv2.resize(var, (33, 51), interpolation=cv2.INTER_CUBIC)
     
     var = var[np.newaxis, :, :].astype(np.float32)  # CxLATxLON
-
     dataset.close()
     return var
-
-'''def read_awap_data(root_dir, date_time):
-    """
-        Reads AWAP data from netcdf file, applies preprocessing steps (log1p, scaling) and returns data as numpy array.
-
-        Args: 
-            root_dir (str): root directory of AWAP data
-            date_time (datetime.date): date of AWAP data to be read
-        
-        Returns:
-            var (np.ndarray): numpy array of AWAP data
-    """
-
-    # Get the filename of the netcdf file
-    filename = root_dir + date_time.strftime("%Y-%m") + ".nc"
-    dataset = xr.open_dataset(filename)
-    
-    var = dataset['precip'].values
-    var = (np.log1p(var)) / 4 # log1p(x) to fix skew in distribution, /4 to scale roughly to [0,1]
-    var = var[np.newaxis, :, :].astype(np.float32)  # CxLATxLON
-    dataset.close()
-
-    return var'''

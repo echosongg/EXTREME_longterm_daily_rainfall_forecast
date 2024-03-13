@@ -85,7 +85,7 @@ def write_log(log):
             log: log to be written
     """
     print(log)
-    my_log_file = open("./save/" + VERSION + '/train.txt', 'a')
+    my_log_file = open("./save/" + VERSION + '/train_crps_no_huber.txt', 'a')
     my_log_file.write(log + '\n')
     my_log_file.close()
 
@@ -210,9 +210,8 @@ def generate_sample(rain_prob, gamma_shape, gamma_scale, num_samples=100):
                 # 如果下雨概率小于0.5，即有可能下雨
                 if rain_prob[b, 0, h, w] < 0.5:
                     # 创建一个伽玛分布对象
-                    gamma_dist = torch.distributions.Gamma(gamma_shape[b, 0, h, w], gamma_scale[b, 0, h, w])
-                    samples = gamma_dist.sample((num_samples,))  # 从伽玛分布中生成num_samples个样本
-                    rain_sample[b, 0, h, w] = samples.median()  # 计算这些样本的中值
+                    expected_rainfall = gamma_shape[b, 0, h, w] / gamma_scale[b, 0, h, w]
+                    rain_sample[b, 0, h, w] = expected_rainfall * (1 - rain_prob[b, 0, h, w])
                 # 否则，降雨量为0
                 else:
                     rain_sample[b, 0, h, w] = 0
@@ -318,17 +317,17 @@ def generator_loss(model_G, model_D, batch_L, batch_H):
     e_S, d_S, _, _ = model_D(batch_S, None, None, None)
 
     # Pixel loss
-    loss_Pixel = Huber(batch_S, batch_H)
-    loss_G = loss_Pixel
+    #loss_Pixel = Huber(batch_S, batch_H)
+    loss_G = 0
     #log loss, ground truth and gamma distribution
-    #loss_Log = log_loss(batch_H, rain_prob, gamma_shape, gamma_scale)
+    loss_Log = log_loss(batch_H, rain_prob, gamma_shape, gamma_scale)
 
-    loss_Pixel_value = loss_Pixel.item() if loss_Pixel.item() != 0 else 1e-100
+    #loss_Pixel_value = loss_Pixel.item() if loss_Pixel.item() != 0 else 1e-100
     #loss_Log_value = loss_Log.item() if loss_Log.item() != 0 else 1e-100
     
 
 
-    #crps = crps_batch(batch_H, rain_prob, gamma_shape, gamma_scale)
+    crps = crps_batch(batch_H, rain_prob, gamma_shape, gamma_scale)
     #CRPS_value = crps.item() if crps.item() != 0 else 1e-100
     # 打印损失的对数值
     #print(f"两个损失的数量级。Pixel Loss: {math.log10(loss_Pixel_value):.2f}, CRPS Loss: {math.log10(L_CRPS * CRPS_value):.2f}")
@@ -339,8 +338,7 @@ def generator_loss(model_G, model_D, batch_L, batch_H):
     loss_Advs += [torch.nn.ReLU()(1.0 - d_S).mean() * L_ADV]
     loss_Adv = torch.mean(torch.stack(loss_Advs))
 
-    loss_G += loss_Adv  + L_CRPS * crps #+ L_LOG * loss_Log
-
+    loss_G += loss_Adv + crps
     return loss_G
 
 def generator_iteration(model_G, model_D, opt_G, opt_D, lr, hr) -> None:
@@ -412,14 +410,13 @@ def get_performance(model_G, dataloader, epoch, batch=-1):
 
             # Generate sample estimate from the distribution
             batch_Out = generate_sample(rain_prob, gamma_shape, gamma_scale).cpu().data.numpy()
-            #print("batch_Out shape", batch_Out.shape)
+            print("batch_Out shape", batch_Out.shape)
             batch_Out = np.clip(batch_Out, 0., 1.)
             # Process output and ground truth for metric calculation
             batch_Out = np.squeeze(batch_Out, axis = 1)
             #batch_Out = np.transpose(batch_Out, [1, 2, 0])
             batch_Out = batch_Out.transpose(1, 2, 0) # 688*880*16
-            batch_Out = cv2.resize(batch_Out, (237,172), interpolation=cv2.INTER_CUBIC)
-            #(3,164,237) (3,172,237) 
+            batch_Out = cv2.resize(batch_Out, (207,172), interpolation=cv2.INTER_CUBIC)
             if len(batch_Out.shape) == 2:
                 batch_Out = batch_Out.reshape(batch_Out.shape[0], batch_Out.shape[1], 1)
             #batch_Out = np.transpose(batch_Out, [2, 0, 1])
@@ -428,19 +425,30 @@ def get_performance(model_G, dataloader, epoch, batch=-1):
 
             img_gt = np.expm1(img_gt * 7)  # Revert preprocessing on ground truth
             img_target = np.expm1(batch_Out * 7)  # Revert preprocessing on prediction
-            print("img_gt max value", np.max(img_gt), "img_target",np.max(img_target))
+            print("img_gt max value", np.max(img_gt))
+            print("img_target",np.max(img_target))
+            print("打印一下0值")
+
             zero_count_gt = np.size(img_gt) - np.count_nonzero(img_gt)
             zero_count_target = np.size(img_target) - np.count_nonzero(img_target)
+            zero_counts_gt = []
+            zero_counts_target = []
+            zero_counts_gt.append(zero_count_gt)
+            zero_counts_target.append(zero_count_target)
 
-            print("Number of zero values in img_gt:", zero_count_gt,"Number of zero values in img_target:", zero_count_target)
+            print("Number of zero values in img_gt:", zero_count_gt)
+            print("Number of zero values in img_target:", zero_count_target)
+
 
             rmses.append(RMSE(img_gt, img_target, 0))
             maes.append(MAE(img_gt, img_target, 0))
             
         rmse = np.mean(np.asarray(rmses))
         mae = np.mean(np.asarray(maes))
+        avg_zero_count_gt = np.mean(zero_counts_gt)
+        avg_zero_count_target = np.mean(zero_counts_target)
         
-        write_log(f"RMSE: {rmse} MAE: {mae} for epoch {epoch}{f' batch {batch}' if batch != -1 else ''}. Completed in {time.time() - itr_test_time} seconds")
+        write_log(f"RMSE: {rmse} MAE: {mae} Avg Zero Count in GT: {avg_zero_count_gt} Avg Zero Count in Output: {avg_zero_count_target} for epoch {epoch}{f' batch {batch}' if batch != -1 else ''}. Completed in {time.time() - itr_test_time} seconds")
 
         return rmse, mae
 

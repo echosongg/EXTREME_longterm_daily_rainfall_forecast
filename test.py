@@ -20,7 +20,8 @@ TEST_SAVE_PREFIX = "/scratch/iu60/xs5813/TestResults/"
 MODEL_PREFIX = SAVE_PREFIX + "version_0/checkpoint/" + "v" 
 TESTING_DATA = "/scratch/iu60/xs5813/Processed_data/e01/*.nc"
 
-australia_lon_range = (142.000,  153.8)
+
+australia_lon_range = (142.000,  152)
 australia_lat_range = (-31.95, -23.4)
 scale = 1.5
 
@@ -226,8 +227,10 @@ def test_model(model_G_name: str, version: str, year: int, month: int) -> None:
 if __name__ == "__main__":
 
     #model_G_name = f"model_G_i0000{str(9).zfill(2)}"
-    model_G_name = "model_G_i000010_best_20240126-010319"
-    #model_G_i000010_best_20240126-010319.pth
+    model_G_name = "model_G_i000012_best_20240307-212434"
+    #model_G_i000001_best_20240206-174119
+    #20240202-142356
+    print(model_G_name,"pretrain random see")
     #version = "TrainingIterationRMSETest"
     version = "TestRefactored"
 
