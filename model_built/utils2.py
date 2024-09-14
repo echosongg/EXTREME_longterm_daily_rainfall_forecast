@@ -150,29 +150,29 @@ def gamma_crps(alpha, beta, y, steps=10, epsilon=1e-6):
 
     return crps
 
-def crps_loss(batch_H, bg_output, epsilon=1e-6,  lambda_val=0.1):
-    """
-    Calculate the log-likelihood loss for a Bernoulli-Gamma distribution, with an option to reduce by mean.
+# def crps_loss(batch_H, bg_output, epsilon=1e-6,  lambda_val=0.1):
+#     """
+#     Calculate the log-likelihood loss for a Bernoulli-Gamma distribution, with an option to reduce by mean.
 
-    Args:
-        batch_H: The actual rainfall data.
-        p_pred: The predicted probability of rainfall from the neural network.
-        alpha_pred: The predicted shape parameter of the Gamma distribution.
-        beta_pred: The predicted scale parameter of the Gamma distribution.
-        epsilon: A small value for numerical stability.
-        reduce: If True, returns the mean of the losses, else returns the losses for each sample.
+#     Args:
+#         batch_H: The actual rainfall data.
+#         p_pred: The predicted probability of rainfall from the neural network.
+#         alpha_pred: The predicted shape parameter of the Gamma distribution.
+#         beta_pred: The predicted scale parameter of the Gamma distribution.
+#         epsilon: A small value for numerical stability.
+#         reduce: If True, returns the mean of the losses, else returns the losses for each sample.
 
-    Returns:
-        The calculated loss, either reduced by mean or as individual losses per sample.
-    """
-    p_pred = torch.sigmoid(bg_output[:, 0, :, :]).unsqueeze(1)  # 下雨概率, 形状 [3, 1, 128, 128]
-    alpha_pred = torch.exp(bg_output[:, 1, :, :]).unsqueeze(1)  # gamma shape, 形状 [3, 1, 128, 128]
-    beta_pred = torch.exp(bg_output[:, 2, :, :]).unsqueeze(1)  # gamma scale, 形状 [3, 1, 128, 128]
-    p_true = (batch_H > 0).float()
-    term1 = -(1 - p_true) * torch.log(1 - p_pred + epsilon)
-    term2 = p_true * (-torch.log(p_pred+epsilon) + lambda_val * gamma_crps(alpha_pred, beta_pred, batch_H))
-    loss = term1 + term2
-    return torch.mean(loss)
+#     Returns:
+#         The calculated loss, either reduced by mean or as individual losses per sample.
+#     """
+#     p_pred = torch.sigmoid(bg_output[:, 0, :, :]).unsqueeze(1)  # 下雨概率, 形状 [3, 1, 128, 128]
+#     alpha_pred = torch.exp(bg_output[:, 1, :, :]).unsqueeze(1)  # gamma shape, 形状 [3, 1, 128, 128]
+#     beta_pred = torch.exp(bg_output[:, 2, :, :]).unsqueeze(1)  # gamma scale, 形状 [3, 1, 128, 128]
+#     p_true = (batch_H > 0).float()
+#     term1 = -(1 - p_true) * torch.log(1 - p_pred + epsilon)
+#     term2 = p_true * (-torch.log(p_pred+epsilon) + lambda_val * gamma_crps(alpha_pred, beta_pred, batch_H))
+#     loss = term1 + term2
+#     return torch.mean(loss)
 
 def generate_sample(bg_output):
     p_pred = torch.sigmoid(bg_output[:, 0, :, :]).unsqueeze(1)  # 下雨概率, 形状 [3, 1, 128, 128]
@@ -233,7 +233,6 @@ def CRPS_from_distribution(p_pred, alpha_pred, beta_pred, y_true, shave_border=4
     
     # Remove border pixels
     forecasts = np.expm1(forecasts * 7)
-    forecasts[forecasts > 300] = 300
     print("y_true value",y_true)
     # Calculate CRPS
     crps = ps.crps_ensemble(y_true, np.transpose(forecasts, (1, 2, 3, 0)))

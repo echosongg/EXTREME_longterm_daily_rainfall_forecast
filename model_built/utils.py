@@ -291,6 +291,18 @@ class ACCESS_AWAP_GAN(Dataset):
 
         return lr, hr, en, access_date.strftime("%Y%m%d"), awap_date.strftime("%Y%m%d"), time_leading
 
+def CRPS(y_true, y_pred):
+    # Initialize prediction matrices
+    y_pred = np.array(y_pred, dtype=np.float32)
+    y_true = np.array(y_true, dtype=np.float32)
+    # Generate 10 predicted values based on Gamma distribution
+    
+    # Remove border pixels
+    forecasts = np.expm1(y_pred * 7)
+    # Calculate CRPS
+    crps = ps.crps_ensemble(y_true, np.transpose(forecasts, (1, 2, 0)))
+
+    return crps.mean().item()
 
 class ACCESS_AWAP_GAN_crps(Dataset):
 

@@ -17,7 +17,7 @@ import properscoring as ps
 from datetime import date, timedelta
 from torchvision import transforms
 
-from utils import Huber, ACCESS_AWAP_GAN, RMSE, MAE
+from utils import Huber, ACCESS_AWAP_GAN, RMSE, MAE, CRPS
 
 import cv2
 
@@ -485,6 +485,7 @@ for itera in range(NB_Iteration):
         rmses = []
         lpips = []
         maes = []
+        crps = []
 
         # Load test image
         for i_val, (lr_val, hr_val, _, _, _, _) in enumerate(val_dataloders):
@@ -518,9 +519,11 @@ for itera in range(NB_Iteration):
             img_target = np.expm1(batch_Out * 7)
             rmses.append(RMSE(img_gt, img_target, 0))
             maes.append(MAE(img_gt, img_target, 0))
+            crps.append(CRPS(img_gt, img_target))
     avg_rmse = np.mean(np.asarray(rmses))
     avg_mae = np.mean(np.asarray(maes))
-    write_log('AVG RMSE: Validation: {:.4f}, AVG MAE: Validation: {:.4f}'.format(avg_rmse, avg_mae))
+    avg_crps = np.mean(np.asarray(crps))
+    write_log('AVG RMSE: Validation: {:.4f}, AVG MAE: Validation: {:.4f}, AVG CRPS: Validation: {:.4f}, Merge metric: {:.4f}'.format(avg_rmse, avg_mae, avg_crps, avg_mae + 1.3*avg_crps))
 
     #write_log('AVG RMSE: Validation: {}'.format(np.mean(np.asarray(rmses))))
 

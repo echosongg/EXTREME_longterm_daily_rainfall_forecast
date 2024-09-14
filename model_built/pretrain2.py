@@ -65,7 +65,7 @@ def write_log(log):
 OSAVE_PREFIX = "/scratch/iu60/xs5813/DESRGAN_YAO/"
 OMODEL_PREFIX = OSAVE_PREFIX + "checkpoint/voriginal_DESRGAN/"
 
-model_G_name = "model_G_i000005_20240401-025017"
+model_G_name = "model_G_i000005_20240910-012407"
 #d_bug = "/scratch/iu60/xs5813/DESRGAN_ORIGINAL/DESRGAN/checkpoint/vTestRefactored/model_G_i000004_best_20240219-114819.pth"
 model_path = OMODEL_PREFIX +  "/" + model_G_name + ".pth"
 model_G = G_arch.ModifiedRRDBNet(model_path, 1, 3, 64, 23, gc=32).cuda()
@@ -319,7 +319,7 @@ for itera in range(NB_Iteration):
     avg_rmse = np.mean(np.asarray(rmses))
     avg_mae = np.mean(np.asarray(maes))
     avg_crps = np.mean(np.asarray(crps))
-    write_log('AVG RMSE: Validation: {:.4f}, AVG MAE: Validation: {:.4f}, AVG CRPS: Validation: {:.4f}'.format(avg_rmse, avg_mae, avg_crps))
+    write_log('AVG RMSE: Validation: {:.4f}, AVG MAE: Validation: {:.4f}, AVG CRPS: Validation: {:.4f}, merge metric: Validation: {:.4f}'.format(avg_rmse, avg_mae, avg_crps, avg_mae+1.3*avg_crps))
 #原尺度，去掉log1p
 #validation mask ocean data, 防止数据不好的地方影响到我的model
 #extreme

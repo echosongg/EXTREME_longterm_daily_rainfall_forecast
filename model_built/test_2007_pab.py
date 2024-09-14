@@ -97,7 +97,7 @@ omodel_G_name = "model_G_i000005_20240401-025017"
 # Load model
 omodel_path = OMODEL_PREFIX +  "/" + omodel_G_name + ".pth"
 for year in years:  # 外层循环遍历每一个年份
-    for model in ['model_G_i000005_20240403-035316_with_huber']:
+    for model in ['model_G_i000007_20240910-130622_with_huber']:
         make_directories(model, version)
         model_path = MODEL_PREFIX + "/" + model + ".pth"
         model_G = arch.ModifiedRRDBNet(omodel_path, 1, 3, 64, 23, gc=32).cuda()
