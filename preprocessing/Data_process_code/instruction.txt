@@ -1,0 +1,44 @@
+
+##########      Here is the explanation of the functionality of the files in this folder "Data_process_code"   #############
+
+In this folder, we have several files to process the data from ACCESS-S2(path: /g/data/ux62/access-s2/hindcast/raw_model/atmos/pr/daily/e01/).
+ The process steps include crop and interpolation and output to the desired output directory.
+ 
+
+
+Use qsub command to submit the .sh file to execute .py files.
+
+Here are some Explanations of the code, please refer to the emerging place in the processing code(.py file)
+
+[1]
+# In VDSR preprocessing, the Australian territory is 111.975 <= lon <= 156.275    - 44.525 <= lat <= - 9.975. Use Xarray read the data, you will get a 'pr' value of (lat:62, lon:54)
+# In VDSR preprocessing, 澳大利亚领土的范围是 111.975 <= lon <= 156.275    - 44.525 <= lat <= - 9.975，用xarray读取后会得到 'pr' 值 coords为(lat:62, lon:54)
+# Be noticed, the longtitude is in the first dimension and lat is in the second
+#  size = (81,93) when n = 1.5
+[2]
+# combine the new lat and the new lon
+# meshgrid will produce two dimension matrices which size is a * b
+# The corresponding coordinates of these two matrices can generate a combined value
+# Ex. x = [1,2,3,4] y = [7,8,9]
+# X, Y = np.meshgrid(x, y)
+# X = [[1, 2, 3, 4],
+#     [1, 2, 3, 4],
+#     [1, 2, 3, 4]]
+# Y = [[7, 7, 7, 7],
+#     [8, 8, 8, 8],
+#     [9, 9, 9, 9]]
+[3]
+The final output is the xarray with lat, lon, time three dimensions and the 
+
+patch larger impact, directly influence the location information.  batch
+RCAN 192 * 192 
+ESRGAN 128 * 128 (much better than VDSR 2 years ago) 
+DESRGAN batch size smaller patch larger(part of inter plot)
+
+700 * 700 
+[4]
+There are different number in different ensembles
+e01-e03 has 6811 files respectively
+e04-e09 has 2736 files respectively
+That is due the different number of initial dates in different ensembles. Therefore, in the subsequent process,
+we need to use the .nc files of the common dates to train and test.

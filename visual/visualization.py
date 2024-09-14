@@ -47,7 +47,7 @@ lat_range = (-31.95, -23.4)
 ##def draw_aus_pr(var,lat,lon,domain = [138, 156.275, -29, -9.975], mode="pr" , titles_on = True,\
 #                title = " precipation in 2012", colormap = prcp_colormap, cmap_label = "PR",save=False,path=""):
 #def draw_aus_pr(year, month, day, data_type, lat, lon, var, domain=[140.6, 153.9, -39.2, -18.6], title="", \
-def draw_aus_pr(year, month, day, esemeble, lat, lon, var, domain=[142, 152.3, -31.95, -23.8], title="", \
+def draw_aus_pr(year, month, day, esemeble, lat, lon, var, domain=[140.6, 153.9, -39.2, -18.6], title="", \
 save=False, path="", colormap = prcp_colormap, cmap_label = "PR", mode="pr", titles_on = True):
     """ basema_ploting .py
 This function takes a 2D data set of a variable from AWAP and maps the data on miller projection. 
@@ -150,22 +150,20 @@ def main(year, month, day, esemeble, model_name, leadingtime):
     date_string = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
     title = None
     #predict data
-    file_path_predict = f"{base_path}TestResults/DESRGAN/vTestRefactored/{model_name}/{esemeble}/pr/{date_string}.nc"
+    file_path_predict = f"{base_path}TestResults/DESRGAN/vTestRefactored/{model_name}/{esemeble}/pr/{year}/{date_string}.nc"
     title_predict = f"predict_{esemeble}_{model_name}_data {date_string}"
     # AWAP 数据的路径
-    file_path_awap = f"{base_path}Awap_pre_data/{date_string}.nc"
+    file_path_awap = f"{base_path}Awap_data_bigger/{date_string}.nc"
     title_awap = f"AWAP_data {date_string}"
-     # ACCESS 数据的
 
     access_end_time = datetime.strptime(date_string, "%Y-%m-%d")
-    access_start_time = access_end_time - timedelta(leadingtime)
-    access_start_time = access_start_time.strftime("%Y-%m-%d")
-    file_path_access = f"{base_path}Processed_data/{esemeble}/{access_start_time}.nc"
+    access_start_time_t = access_end_time - timedelta(leadingtime)
+    access_start_time = access_start_time_t.strftime("%Y-%m-%d")
+    access_start_time2 = access_start_time_t.strftime("%Y%m%d")
+    file_path_access = f"{base_path}Processed_data_train/{esemeble}/da_pr_{access_start_time2}_{esemeble}.nc"
     title_access = f"ACCESS_data {date_string}"
-
-    # 加载数据
-    predict_data = xr.open_dataset(file_path_predict)
-    predict_data = predict_data.fillna(0)
+    #predict_data = xr.open_dataset(file_path_predict)
+    #predict_data = predict_data.fillna(0)
 
     awap_data = xr.open_dataset(file_path_awap)
     awap_data = awap_data.fillna(0)
@@ -173,61 +171,20 @@ def main(year, month, day, esemeble, model_name, leadingtime):
     access_data = xr.open_dataset(file_path_access)
     access_data = access_data.fillna(0)
         # 预测数据的路径
-    predict_result = np.expm1(predict_data.sel(time=date_string)['pr'].values * 7)
+    #predict_result = predict_data.sel(time=date_string)['pr'].values
 
-    awap_result = awap_data['pr'].values
-    access_result = access_data.isel(time=leadingtime)['pr'].values
+    #awap_result = awap_data['pr'].values
+    access_result = np.expm1(access_data.isel(time=leadingtime)['pr'].values * 7)
     #result = np.expm1(data.sel(time=date_string)['pr'].values * 7)
-    lat = predict_data.lat.values
-    lon = predict_data.lon.values
+    #lat = predict_data.lat.values
+    #lon = predict_data.lon.values
 
     access_lat = access_data.lat.values
     access_lon = access_data.lon.values
 
-    draw_aus_pr(year, month, day, "predict", lat, lon, predict_result, title=title, save=True, path=f"/home/599/xs5813/EXTREME/predict_e01_{date_string}_{model_name}.jpeg")
-    draw_aus_pr(year, month, day, "awap", lat, lon, awap_result, title=title, save=True, path=f"/home/599/xs5813/EXTREME/awap_e01_{date_string}_{model_name}.jpeg")
+    #draw_aus_pr(year, month, day, "predict", lat, lon, predict_result, title=title, save=True, path=f"/home/599/xs5813/EXTREME/predict_e01_{date_string}_{model_name}.jpeg")
+    #draw_aus_pr(year, month, day, "awap", lat, lon, awap_result, title=title, save=True, path=f"/home/599/xs5813/EXTREME/awap_e01_{date_string}_{model_name}.jpeg")
     draw_aus_pr(year, month, day, "access", access_lat, access_lon, access_result, title=title, save=True, path=f"/home/599/xs5813/EXTREME/access_e01_{date_string}_{leadingtime}.jpeg")
 
 # 例如，要绘制 2002 年 1 月 1 日的预测数据
-main(2002, "12", "27", "e01", "model_G_i000005_best_20240305-194851", 1)
-#1994-07-16
-
-#not good data
-#gernerator loss: log loss -> model_G_i000003_best_20240125-022940
-#model_G_i000004_best_20240203-091026 预测雨量集中在海边
-#model_G_i000003_best_20240204-195122 貌似位置是对的，就是值差的很多
-#model_G_i000007_best_20240205-034204 crps and expect value, 左边一条浅色竖线
-#model_G_i000003_best_20240213-090639 中间测试一下 crps and huber 1e-2, 位置不好在训练看看
-#model_G_i000010_best_20240213-093949 change D using log loss
-#model_G_i000008_best_20240214-161433 pretrain L1 1 L2 1 还没试
-#model_G_i000006_best_20240214-123451  pretrain L1 1 L2 1很烂
-
-#** model_G_i000010_best_20240214-125812 pretrain L1 1, L2 0.1 这个还好，有一些位置有一点奇怪
-#model_G_i000013_best_20240214-163449 original DESRGAN 看看效果如何 不是很好有点过拟合
-#model_G_i000006_20240202-130814 这个是original 看着效果不好，但是用作pretrain还可以
-#20240214-160606 这个还可以 original model
-#model_G_i000010_best_20240214-105741 pretrain L1 0.1, L2 1
-#model_G_i000007_best_20240217-145726 正在跑omodel的 3 esemeble
-#model_G_i000005_best_20240217-153636 3 esemeble not bad，继续训练看看结果可不可以更好, 正在跑
-#model_G_i000010_best_20240218-015617 9 esemeble 
-#这两个都可以试一试
-#model_G_i000004_best_20240219-114819 summer 3 esemble 还可以
-#model_G_i000010_best_20240219-121948 summer 3 e 效果貌似不错
-#model_G_i000001_best_20240219-152044 summer 3 e 好烂
-#model_G_i000005_best_20240221-003227 no tensor log loss一片空白 
-#model_G_i000003_best_20240220-191719 27-2 tensor 
-#model_G_i000004_best_20240221-231804 0.1 log loss (1-p) a/b的generate, cut了0值，结果没什么白色，但是颜色貌似是对的
-
-
-#model_G_i000004_best_20240223-002852 0.001 log loss no huber 效果不错，是改了之后的
-#model_G_i000007_20240223-010200 0.001 log loss and huber 效果还行
-#model_G_i000010_best_20240223-025648 这是目前效果最好的，但是边上会有一些问题，还有就是极值问题，老师让我将其改为输出三个值，p, a, b然后看看预测的怎么样
-#这个e01, e02, e03 summer, leadingtime = 1-7
-#
-
-#1. 我输出的结果似乎在极值方面做的不是很好，和original_model相比，有雨的部分会shrink -> 由于NewZeland文章是使用均值，
-#   所以我将其改为均值，似乎是这个原因？解决想法： 1mm too big, make it smaller, 改善预处理方法也可能可以对极值有改善（由于极值对huber和log loss的影响比较小， 原因是被log拉低了）
-#2. 似乎因为很多我的地区都是没有雨的，导致模型经常会趋向于全图无雨, 改为预测夏季
-#3. 不论是我的模型还是DESGAN 在边远的部分会有一些竖线，估计是因为在边上，随机选取块的时候会比较训练的少，大部分时候取中间
-#4. 
-
+main(2005, "12", "31", "e01", "model_G_i000008_20240824-212330_with_huber", 1)
