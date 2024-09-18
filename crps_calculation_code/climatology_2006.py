@@ -11,7 +11,41 @@ import data_processing_tool as dpt
 import sys
 
 sys.path.append('../')
+def calculate_alpha_index(ensemble_forecasts, observations):
+    """
+    Optimized calculation of the alpha index for forecast reliability based on 3D PIT values.
 
+    Parameters:
+    pit_values (array-like): A 3D array of PIT (Probability Integral Transform) values,
+                             where the first two dimensions are spatial (x, y) and the third
+                             dimension represents ensemble members.
+
+    Returns:
+    np.ndarray: A 2D array of alpha index values where each element corresponds
+                to a spatial point (x, y) in the grid.
+    """
+    ensemble_forecasts = np.transpose(ensemble_forecasts, (1, 2, 0))
+    pit_values = ensemble_forecasts <= observations[:, :, np.newaxis]
+    # Get the shape of the PIT values array
+    x_size, y_size, ensemble_size = pit_values.shape
+    #print(f"Shape of pit_values: {pit_values.shape}") 
+
+    # Sort the PIT values along the ensemble dimension (axis 2)
+    pit_sorted = np.sort(pit_values, axis=2)
+
+    # Calculate expected uniform distribution values for the ensemble members (broadcasted)
+    expected_uniform = np.linspace(1 / (ensemble_size + 1), ensemble_size / (ensemble_size + 1), ensemble_size)
+    # Calculate the absolute differences between sorted PIT values and the expected uniform distribution
+    absolute_differences = np.abs(pit_sorted - expected_uniform[None, None, :])
+
+    # Sum the absolute differences along the ensemble member dimension (axis 2)
+    sum_absolute_differences = np.sum(absolute_differences, axis=2)
+
+    # Calculate the alpha index for each spatial point
+    alpha_values = 1 - (2 / ensemble_size) * sum_absolute_differences
+    print(f"Shape of sum_absolute_differences: {sum_absolute_differences.shape}") 
+
+    return alpha_values
 
 def rmse(ens, hr):
     '''
@@ -142,6 +176,7 @@ def main(year, time_windows):
     mean_bias_relative_model_2d9 = []
     mean_bias_relative_model_3 = []
     mean_bias_relative_model_5 = []
+    alpha = []
 
     for target_date in dates_needs:
         hr, Awap_date = dpt.read_awap_data_fc(file_BARRA_dir, target_date)
@@ -224,6 +259,7 @@ def main(year, time_windows):
             # bias_relative_2d9 = bias_relative_median(ensamble, hr, constant=2.9)
             bias_relative_3 = bias_relative(ensamble, hr, constant=3)
             bias_relative_5 = bias_relative_median(ensamble, hr, constant=5)
+            clim_alpha = calculate_alpha_index(ensamble, hr)
             #
             Brier_0.append((prob_awap0 - prob_ensamble0) ** 2)
             Brier95.append((prob_awap95 - prob_ensamble95) ** 2)
@@ -242,6 +278,7 @@ def main(year, time_windows):
             # mean_bias_relative_model_2d9.append(bias_relative_2d9)
             mean_bias_relative_model_3.append(bias_relative_3)
             mean_bias_relative_model_5.append(bias_relative_5)
+            alpha.append(clim_alpha)
         # if log_ensamble:
         #     print("calculate ensemble")
         #     log_ensamble = np.array(log_ensamble)
@@ -273,6 +310,7 @@ def main(year, time_windows):
     np.save(os.path.join(base_path, f"relative_bias_5_climatology_{year}_all_lead_time_windows_{(time_windows - 1) * 2 + 1}"), np.array(mean_bias_relative_model_5, dtype=np.float64))
     np.save(os.path.join(base_path, f"bias_climatology_{year}_all_lead_time_windows_{(time_windows - 1) * 2 + 1}"), np.array(bias_ref, dtype=np.float64))
     np.save(os.path.join(base_path, f"bias_median_climatology_{year}_all_lead_time_windows_{(time_windows - 1) * 2 + 1}"), np.array(bias_median_ref, dtype=np.float64))
+    np.save(os.path.join(base_path, f"alpha_climatology_{year}_all_lead_time_windows_{(time_windows - 1) * 2 + 1}"), np.array(alpha, dtype=np.float64))
 
 if __name__ == '__main__':
     year_list = [2006,2007,2018]

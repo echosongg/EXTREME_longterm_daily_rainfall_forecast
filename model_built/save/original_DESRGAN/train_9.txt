@@ -1,3 +1,86 @@
 !!!Let's use4GPUs!
 Training Dataset length: 49734
 Validation Dataset length: 12474
+/scratch/iu60/xs5813/DESRGAN_YAO original_DESRGAN | Iter:  2762, Sample: 49734, D:1.06e-01, DEnc(1/-1):0.02/-0.02, DDec(1/-1):0.02/-0.03, nMix:36, Dcons:5.64e-01, GPixel:2.66e-05, GLPIPS:0.00e+00, GFM:0.00e+00, GAdv:6.69e-05, G:9.35e-05, dT:0.0002, huber:0.0730rT:0.0025
+Checkpoint saved with timestamp 20240914-222605
+!!!Let's use4GPUs!
+Training Dataset length: 49734
+Validation Dataset length: 12474
+/scratch/iu60/xs5813/DESRGAN_YAO original_DESRGAN | Iter:  2762, Sample: 49734, D:1.06e-01, DEnc(1/-1):0.02/-0.01, DDec(1/-1):0.03/-0.02, nMix:31, Dcons:8.22e-01, GPixel:2.48e-05, GLPIPS:0.00e+00, GFM:0.00e+00, GAdv:6.37e-05, G:8.85e-05, dT:0.0002, huber:0.0727rT:0.0025
+Checkpoint saved with timestamp 20240915-004455
+!!!Let's use4GPUs!
+Training Dataset length: 49734
+Validation Dataset length: 12474
+/scratch/iu60/xs5813/DESRGAN_YAO original_DESRGAN | Iter:  2762, Sample: 49734, D:9.36e-02, DEnc(1/-1):0.03/-0.02, DDec(1/-1):0.02/-0.03, nMix:37, Dcons:6.18e-01, GPixel:2.77e-05, GLPIPS:0.00e+00, GFM:0.00e+00, GAdv:6.79e-05, G:9.56e-05, dT:0.0002, huber:0.0730rT:0.0023
+Checkpoint saved with timestamp 20240915-035221
+AVG RMSE: Validation: 3.8520, AVG MAE: Validation: 1.3153, AVG CRPS: Validation: inf, Merge metric: inf
+/scratch/iu60/xs5813/DESRGAN_YAO original_DESRGAN | Iter:  2762, Sample: 99468, D:6.09e-02, DEnc(1/-1):0.03/-0.03, DDec(1/-1):0.04/-0.04, nMix:40, Dcons:1.12e+00, GPixel:2.18e-05, GLPIPS:0.00e+00, GFM:0.00e+00, GAdv:8.05e-05, G:1.02e-04, dT:0.0002, huber:0.0741rT:0.0023
+Checkpoint saved with timestamp 20240915-052402
+AVG RMSE: Validation: 4.7227, AVG MAE: Validation: 1.2695, AVG CRPS: Validation: inf, Merge metric: inf
+/scratch/iu60/xs5813/DESRGAN_YAO original_DESRGAN | Iter:  2762, Sample:149202, D:4.22e-02, DEnc(1/-1):0.04/-0.04, DDec(1/-1):0.05/-0.05, nMix:42, Dcons:1.45e+00, GPixel:2.10e-05, GLPIPS:0.00e+00, GFM:0.00e+00, GAdv:8.78e-05, G:1.09e-04, dT:0.0002, huber:0.0752rT:0.0027
+Checkpoint saved with timestamp 20240915-065641
+AVG RMSE: Validation: 15.2381, AVG MAE: Validation: 1.4726, AVG CRPS: Validation: inf, Merge metric: inf
+/scratch/iu60/xs5813/DESRGAN_YAO original_DESRGAN | Iter:  2762, Sample:198936, D:2.55e-02, DEnc(1/-1):0.05/-0.06, DDec(1/-1):0.05/-0.05, nMix:36, Dcons:1.59e+00, GPixel:2.01e-05, GLPIPS:0.00e+00, GFM:0.00e+00, GAdv:9.92e-05, G:1.19e-04, dT:0.0002, huber:0.0735rT:0.0027
+Checkpoint saved with timestamp 20240915-082729
+AVG RMSE: Validation: 3.9259, AVG MAE: Validation: 1.2144, AVG CRPS: Validation: inf, Merge metric: inf
+/scratch/iu60/xs5813/DESRGAN_YAO original_DESRGAN | Iter:  2762, Sample:248670, D:4.62e-02, DEnc(1/-1):0.03/-0.04, DDec(1/-1):0.05/-0.05, nMix:28, Dcons:1.59e+00, GPixel:2.04e-05, GLPIPS:0.00e+00, GFM:0.00e+00, GAdv:8.97e-05, G:1.10e-04, dT:0.0002, huber:0.0741rT:0.0024
+Checkpoint saved with timestamp 20240915-095904
+AVG RMSE: Validation: 3.8741, AVG MAE: Validation: 1.1928, AVG CRPS: Validation: inf, Merge metric: inf
+/scratch/iu60/xs5813/DESRGAN_YAO original_DESRGAN | Iter:  2762, Sample:298404, D:4.75e-02, DEnc(1/-1):0.02/-0.03, DDec(1/-1):0.05/-0.05, nMix:31, Dcons:1.93e+00, GPixel:2.03e-05, GLPIPS:0.00e+00, GFM:0.00e+00, GAdv:8.91e-05, G:1.09e-04, dT:0.0002, huber:0.0751rT:0.0025
+Checkpoint saved with timestamp 20240915-113138
+AVG RMSE: Validation: 3.8157, AVG MAE: Validation: 1.2277, AVG CRPS: Validation: inf, Merge metric: inf
+/scratch/iu60/xs5813/DESRGAN_YAO original_DESRGAN | Iter:  2762, Sample:348138, D:4.89e-02, DEnc(1/-1):0.02/-0.03, DDec(1/-1):0.05/-0.05, nMix:32, Dcons:1.91e+00, GPixel:2.02e-05, GLPIPS:0.00e+00, GFM:0.00e+00, GAdv:8.81e-05, G:1.08e-04, dT:0.0002, huber:0.0746rT:0.0020
+Checkpoint saved with timestamp 20240915-130340
+AVG RMSE: Validation: 4.8671, AVG MAE: Validation: 1.2721, AVG CRPS: Validation: inf, Merge metric: inf
+/scratch/iu60/xs5813/DESRGAN_YAO original_DESRGAN | Iter:  2762, Sample:397872, D:4.87e-02, DEnc(1/-1):0.03/-0.03, DDec(1/-1):0.05/-0.05, nMix:40, Dcons:1.85e+00, GPixel:2.03e-05, GLPIPS:0.00e+00, GFM:0.00e+00, GAdv:8.81e-05, G:1.08e-04, dT:0.0002, huber:0.0737rT:0.0023
+Checkpoint saved with timestamp 20240915-143449
+AVG RMSE: Validation: 3.8608, AVG MAE: Validation: 1.2693, AVG CRPS: Validation: inf, Merge metric: inf
+/scratch/iu60/xs5813/DESRGAN_YAO original_DESRGAN | Iter:  2762, Sample:447606, D:4.97e-02, DEnc(1/-1):0.02/-0.03, DDec(1/-1):0.05/-0.05, nMix:34, Dcons:1.66e+00, GPixel:2.03e-05, GLPIPS:0.00e+00, GFM:0.00e+00, GAdv:8.76e-05, G:1.08e-04, dT:0.0002, huber:0.0749rT:0.0024
+Checkpoint saved with timestamp 20240915-160708
+AVG RMSE: Validation: 3.9390, AVG MAE: Validation: 1.3102, AVG CRPS: Validation: inf, Merge metric: inf
+/scratch/iu60/xs5813/DESRGAN_YAO original_DESRGAN | Iter:  2762, Sample:497340, D:4.98e-02, DEnc(1/-1):0.03/-0.03, DDec(1/-1):0.05/-0.05, nMix:38, Dcons:2.51e+00, GPixel:2.04e-05, GLPIPS:0.00e+00, GFM:0.00e+00, GAdv:8.81e-05, G:1.08e-04, dT:0.0002, huber:0.0745rT:0.0024
+Checkpoint saved with timestamp 20240915-173859
+AVG RMSE: Validation: 3.9789, AVG MAE: Validation: 1.4466, AVG CRPS: Validation: inf, Merge metric: inf
+!!!Let's use4GPUs!
+Training Dataset length: 49734
+Validation Dataset length: 12474
+/scratch/iu60/xs5813/DESRGAN_YAO original_DESRGAN | Iter:  2762, Sample: 49734, D:1.04e-01, DEnc(1/-1):0.02/-0.02, DDec(1/-1):0.04/-0.00, nMix:40, Dcons:8.16e-01, GPixel:2.60e-05, GLPIPS:0.00e+00, GFM:0.00e+00, GAdv:5.71e-05, G:8.30e-05, dT:0.0002, huber:0.0729rT:0.0017
+Checkpoint saved with timestamp 20240915-210000
+!!!Let's use4GPUs!
+Training Dataset length: 49734
+Validation Dataset length: 12474
+/scratch/iu60/xs5813/DESRGAN_YAO original_DESRGAN | Iter:  2762, Sample: 49734, D:1.16e-01, DEnc(1/-1):0.02/-0.01, DDec(1/-1):0.02/-0.02, nMix:46, Dcons:6.34e-01, GPixel:2.38e-05, GLPIPS:0.00e+00, GFM:0.00e+00, GAdv:6.15e-05, G:8.54e-05, dT:0.0002, huber:0.0731rT:0.0025
+Checkpoint saved with timestamp 20240916-034722
+!!!Let's use4GPUs!
+Training Dataset length: 49734
+Validation Dataset length: 12474
+/scratch/iu60/xs5813/DESRGAN_YAO original_DESRGAN | Iter:  2762, Sample: 49734, D:1.26e-01, DEnc(1/-1):0.02/-0.00, DDec(1/-1):0.01/-0.02, nMix:30, Dcons:6.99e-01, GPixel:2.42e-05, GLPIPS:0.00e+00, GFM:0.00e+00, GAdv:5.93e-05, G:8.35e-05, dT:0.0002, huber:0.0746rT:0.0017
+Checkpoint saved with timestamp 20240917-011055
+AVG RMSE: Validation: 4.1385, AVG MAE: Validation: 1.2806, AVG CRPS: Validation: inf, Merge metric: inf
+/scratch/iu60/xs5813/DESRGAN_YAO original_DESRGAN | Iter:  2762, Sample: 99468, D:8.56e-02, DEnc(1/-1):0.02/-0.02, DDec(1/-1):0.03/-0.04, nMix:49, Dcons:8.42e-01, GPixel:2.11e-05, GLPIPS:0.00e+00, GFM:0.00e+00, GAdv:7.21e-05, G:9.32e-05, dT:0.0002, huber:0.0748rT:0.0020
+Checkpoint saved with timestamp 20240917-024333
+AVG RMSE: Validation: 3.9257, AVG MAE: Validation: 1.2147, AVG CRPS: Validation: inf, Merge metric: inf
+/scratch/iu60/xs5813/DESRGAN_YAO original_DESRGAN | Iter:  2762, Sample:149202, D:5.82e-02, DEnc(1/-1):0.02/-0.02, DDec(1/-1):0.04/-0.05, nMix:37, Dcons:1.27e+00, GPixel:2.05e-05, GLPIPS:0.00e+00, GFM:0.00e+00, GAdv:7.99e-05, G:1.00e-04, dT:0.0002, huber:0.0747rT:0.0022
+Checkpoint saved with timestamp 20240917-041605
+AVG RMSE: Validation: 4.0141, AVG MAE: Validation: 1.2403, AVG CRPS: Validation: inf, Merge metric: inf
+/scratch/iu60/xs5813/DESRGAN_YAO original_DESRGAN | Iter:  2762, Sample:198936, D:5.24e-02, DEnc(1/-1):0.03/-0.03, DDec(1/-1):0.05/-0.05, nMix:39, Dcons:1.56e+00, GPixel:2.02e-05, GLPIPS:0.00e+00, GFM:0.00e+00, GAdv:8.29e-05, G:1.03e-04, dT:0.0002, huber:0.0743rT:0.0021
+Checkpoint saved with timestamp 20240917-054751
+AVG RMSE: Validation: 4.0919, AVG MAE: Validation: 1.3216, AVG CRPS: Validation: inf, Merge metric: inf
+/scratch/iu60/xs5813/DESRGAN_YAO original_DESRGAN | Iter:  2762, Sample:248670, D:5.53e-02, DEnc(1/-1):0.02/-0.02, DDec(1/-1):0.05/-0.05, nMix:32, Dcons:1.87e+00, GPixel:2.04e-05, GLPIPS:0.00e+00, GFM:0.00e+00, GAdv:8.23e-05, G:1.03e-04, dT:0.0002, huber:0.0743rT:0.0024
+Checkpoint saved with timestamp 20240917-071955
+AVG RMSE: Validation: 4.0922, AVG MAE: Validation: 1.1958, AVG CRPS: Validation: inf, Merge metric: inf
+/scratch/iu60/xs5813/DESRGAN_YAO original_DESRGAN | Iter:  2762, Sample:298404, D:5.34e-02, DEnc(1/-1):0.02/-0.02, DDec(1/-1):0.05/-0.05, nMix:29, Dcons:1.85e+00, GPixel:2.03e-05, GLPIPS:0.00e+00, GFM:0.00e+00, GAdv:8.30e-05, G:1.03e-04, dT:0.0002, huber:0.0747rT:0.0017
+Checkpoint saved with timestamp 20240917-085207
+AVG RMSE: Validation: 3.8795, AVG MAE: Validation: 1.1945, AVG CRPS: Validation: inf, Merge metric: inf
+/scratch/iu60/xs5813/DESRGAN_YAO original_DESRGAN | Iter:  2762, Sample:348138, D:5.37e-02, DEnc(1/-1):0.02/-0.03, DDec(1/-1):0.05/-0.05, nMix:40, Dcons:1.75e+00, GPixel:2.02e-05, GLPIPS:0.00e+00, GFM:0.00e+00, GAdv:8.36e-05, G:1.04e-04, dT:0.0002, huber:0.0744rT:0.0019
+Checkpoint saved with timestamp 20240917-102357
+AVG RMSE: Validation: 3.8669, AVG MAE: Validation: 1.1980, AVG CRPS: Validation: inf, Merge metric: inf
+/scratch/iu60/xs5813/DESRGAN_YAO original_DESRGAN | Iter:  2762, Sample:397872, D:5.06e-02, DEnc(1/-1):0.03/-0.03, DDec(1/-1):0.05/-0.05, nMix:40, Dcons:1.46e+00, GPixel:2.01e-05, GLPIPS:0.00e+00, GFM:0.00e+00, GAdv:8.52e-05, G:1.05e-04, dT:0.0002, huber:0.0750rT:0.0017
+Checkpoint saved with timestamp 20240917-115631
+AVG RMSE: Validation: 3.8504, AVG MAE: Validation: 1.1684, AVG CRPS: Validation: inf, Merge metric: inf
+/scratch/iu60/xs5813/DESRGAN_YAO original_DESRGAN | Iter:  2762, Sample:447606, D:5.32e-02, DEnc(1/-1):0.02/-0.03, DDec(1/-1):0.05/-0.05, nMix:43, Dcons:1.60e+00, GPixel:1.99e-05, GLPIPS:0.00e+00, GFM:0.00e+00, GAdv:8.47e-05, G:1.05e-04, dT:0.0002, huber:0.0752rT:0.0021
+Checkpoint saved with timestamp 20240917-132916
+AVG RMSE: Validation: 3.9297, AVG MAE: Validation: 1.2215, AVG CRPS: Validation: inf, Merge metric: inf
+/scratch/iu60/xs5813/DESRGAN_YAO original_DESRGAN | Iter:  2762, Sample:497340, D:5.24e-02, DEnc(1/-1):0.02/-0.03, DDec(1/-1):0.05/-0.05, nMix:32, Dcons:1.82e+00, GPixel:1.98e-05, GLPIPS:0.00e+00, GFM:0.00e+00, GAdv:8.47e-05, G:1.05e-04, dT:0.0002, huber:0.0745rT:0.0025
+Checkpoint saved with timestamp 20240917-150114
+AVG RMSE: Validation: 3.9096, AVG MAE: Validation: 1.1525, AVG CRPS: Validation: inf, Merge metric: inf

@@ -121,8 +121,9 @@ def main(year, month, day, ensemble, leadingtime, gtype):
     date_string = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
     date_string2 = f"{year}{month.zfill(2)}{day.zfill(2)}"
     title = None
-    desrgan_modelname = "model_G_i000005_20240609-234526"
-    prgan_modelname = "model_G_i000008_20240824-212330_with_huber"
+    desrgan_modelname = "model_G_i000007_20240910-042620"
+    #prgan_modelname = "model_G_i000008_20240824-212330_with_huber"
+    prgan_modelname = "model_G_i000008_20240916-171624_with_huber"
     # AWAP 数据的路径
     file_path_awap = f"{base_path}Awap_data_bigger/{date_string}.nc"
     title_awap = f"AWAP_data {date_string}"
@@ -211,5 +212,5 @@ def main(year, month, day, ensemble, leadingtime, gtype):
 #save=False, path="", colormap = prcp_colormap, cmap_label = "PR", mode="pr", titles_on = True):
     draw_aus_pr(year, month, day, ensemble, lat, lon,access_lat,access_lon, access_result, qm_result,desrgan_result,prgan_result,awap_result, title=title, save=True, path=f"/home/599/xs5813/EXTREME/compare_{gtype}_{ensemble}_{date_string}_{leadingtime}.jpeg")
 
-main(2009, "08", "31", "e01", 1, "median")
-main(2009, "08", "31", "e01", 1, "mean")
+main(2007, "12", "17", "e01", 1, "mean")
+#main(2007, "12", "15", "e01", 1, "mean")

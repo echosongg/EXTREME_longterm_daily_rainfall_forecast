@@ -10,6 +10,7 @@ import numpy as np
 import xarray as xr
 import cv2
 from torch.utils.data import Dataset
+import properscoring as ps
 
 
 ### COMMON FUNCTIONS ###
@@ -295,12 +296,14 @@ def CRPS(y_true, y_pred):
     # Initialize prediction matrices
     y_pred = np.array(y_pred, dtype=np.float32)
     y_true = np.array(y_true, dtype=np.float32)
-    # Generate 10 predicted values based on Gamma distribution
-    
+    # Print shapes of y_true and forecasts
+    print(f"Shape of y_true: {y_true.shape}")
+    print(f"Shape of forecasts: {y_pred.shape}")
     # Remove border pixels
     forecasts = np.expm1(y_pred * 7)
+    
     # Calculate CRPS
-    crps = ps.crps_ensemble(y_true, np.transpose(forecasts, (1, 2, 0)))
+    crps = ps.crps_ensemble(y_true, forecasts)
 
     return crps.mean().item()
 

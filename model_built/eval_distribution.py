@@ -12,6 +12,74 @@ import os
 import time
 import properscoring as ps
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+def calculate_alpha_index(p_pred, alpha_pred, beta_pred, observations, num_values=10):
+    """
+    Optimized calculation of the alpha index for forecast reliability based on 3D PIT values.
+
+    Parameters:
+    p_pred (array-like): A 2D array of predicted probabilities for rain.
+    alpha_pred (array-like): A 2D array of predicted alpha values for the gamma distribution.
+    beta_pred (array-like): A 2D array of predicted beta values for the gamma distribution.
+    observations (array-like): A 2D array of true observed rainfall values.
+    num_values (int): The number of ensemble forecasts to generate.
+
+    Returns:
+    torch.Tensor: A 2D tensor of alpha index values where each element corresponds
+                  to a spatial point (x, y) in the grid.
+    """
+
+    # Convert inputs to PyTorch tensors and move to GPU
+    p_pred = torch.tensor(p_pred, dtype=torch.float32, device=device)
+    alpha_pred = torch.tensor(alpha_pred, dtype=torch.float32, device=device)
+    beta_pred = torch.tensor(beta_pred, dtype=torch.float32, device=device)
+    observations = torch.tensor(observations, dtype=torch.float32, device=device)
+    
+    # Clamp alpha and beta to avoid zero or negative values
+    alpha_pred = torch.clamp(alpha_pred, min=1e-6)
+    beta_pred = torch.clamp(beta_pred, min=1e-6)
+
+    # Generate ensemble forecasts
+    forecasts = torch.zeros((num_values, *p_pred.shape), dtype=torch.float32, device=device)
+    for i in range(num_values):
+        is_rain = torch.bernoulli(p_pred)  # Simulate rain occurrence
+        rain_amount = torch.distributions.gamma.Gamma(alpha_pred, 1 / beta_pred).sample()  # Rain amount from gamma distribution
+        forecasts[i] = is_rain * rain_amount  # Multiply rain occurrence by amount
+
+    # Apply transformation to forecasts and remove border pixels (expm1 for exponentiation)
+    forecasts = torch.expm1(forecasts * 7)
+
+    # Transpose to match expected shape (bring num_values to last dimension)
+    forecasts = forecasts.permute(1, 2, 0)  # Shape becomes (413, 267, num_values)
+
+    # Compare ensemble forecasts with observations to calculate PIT values
+    pit_values = forecasts <= observations[:, :, None]
+    logging.info(f"forecasts calculated with shape: {forecasts.shape}")
+
+    # Get the shape of the PIT values array
+    x_size, y_size, ensemble_size = pit_values.shape
+
+    # Sort the PIT values along the ensemble dimension (axis 2)
+    pit_sorted = torch.sort(pit_values, dim=2).values  # Sort PIT values along last dimension (ensemble members)
+
+    # Calculate expected uniform distribution values for the ensemble members (broadcasted)
+    expected_uniform = torch.linspace(1 / (ensemble_size + 1), ensemble_size / (ensemble_size + 1), ensemble_size, device=device)
+
+    # Calculate the absolute differences between sorted PIT values and the expected uniform distribution
+    absolute_differences = torch.abs(pit_sorted - expected_uniform[None, None, :])
+
+    # Sum the absolute differences along the ensemble member dimension (axis 2)
+    sum_absolute_differences = torch.sum(absolute_differences, dim=2)
+
+    # Calculate the alpha index for each spatial point
+    alpha_values = 1 - (2 / ensemble_size) * sum_absolute_differences
+    # 
+
+    logging.info(f"alpha_values calculated with shape: {alpha_values.shape}")
+
+    return alpha_values
+    
+
 def calAWAPprob(AWAP_data, percentile):
     ''' 
     input: AWAP_data is  413 * 267
@@ -223,7 +291,7 @@ def write_log(log, args):
     print(log)
     if not os.path.exists("./save/" + args.train_name + "/"):
         os.mkdir("./save/" + args.train_name + "/")
-    my_log_file = open("./save/" + args.train_name + '/train.txt', 'a')
+    my_log_file = open("./save/" + args.train_name + '/distribution.txt', 'a')
     my_log_file.write(log + '\n')
     my_log_file.close()
     return
@@ -247,6 +315,7 @@ def CRPS_from_distribution(p_pred, alpha_pred, beta_pred, y_true, history, shave
     # Remove border pixels
     forecasts = torch.expm1(forecasts * 7)
     forecasts = forecasts.view(-1, *y_true.shape)
+    forecasts = torch.minimum(forecasts, 1.1 * history) # Limit values to historical max
     # Calculate CRPS
     print("Shape of pred before squeeze:",p_pred.shape)
     print("Shape of y_true before squeeze:",y_true.shape)
@@ -257,7 +326,7 @@ def CRPS_from_distribution(p_pred, alpha_pred, beta_pred, y_true, history, shave
 
 def main(year, days):
 
-    model_name = 'model_G_i000005_20240403-035316_with_huber'
+    model_name = 'model_G_i000008_20240916-171624_with_huber'
     version = "TestRefactored"
     Brier_startyear = 1976
     Brier_endyear = 2005
@@ -374,6 +443,8 @@ def main(year, days):
 
     write_log("start", args)
     percentile_95 = dpt.AWAPcalpercentile(Brier_startyear, Brier_endyear, 95)
+    #history higest rainfall
+    history = dpt.AWAPcalpercentile(Brier_startyear, Brier_endyear, 100)
     print("percentile 95 is : ", percentile_95)
     # print("type of percentile95", type(percentile_95))
     # print("The size of percentile95 ", len(percentile_95))
@@ -387,15 +458,17 @@ def main(year, days):
     #print(test_instance.__getitem__(0))  # 尝试获取第一个元素，看是否能正常工作
     def compute_metrics(sr, hr, args):
         metrics = {
-            "skil_dis": CRPS_from_distribution(np.squeeze(sr[:, 0, :, :]), np.squeeze(sr[:, 1, :, :]), np.squeeze(sr[:, 2, :, :]), hr),
+            #"skil_dis": CRPS_from_distribution(np.squeeze(sr[:, 0, :, :]), np.squeeze(sr[:, 1, :, :]), np.squeeze(sr[:, 2, :, :]), hr,history),
             #change
+            #"mae_median_dis": mae_median(np.squeeze(sr[:, 0, :, :]), np.squeeze(sr[:, 1, :, :]), np.squeeze(sr[:, 2, :, :]), hr),
             #"Brier_0": brier_score(calAWAPdryprob(hr, 0.1), calforecastdryprob(sr, 0.1)),
-            "Brier_0_dis": brier_score(calAWAPdryprob(hr, 0.1), np.squeeze(sr[:, 0, :, :])),
+            #"Brier_0_dis": brier_score(calAWAPdryprob(hr, 0.1), np.squeeze(sr[:, 0, :, :])),
             #"Brier_95": brier_score(calAWAPprob(hr, percentile_95), calforecastprob(sr, percentile_95)),
-            "Brier_95_dis": brier_score(calAWAPprob(hr, percentile_95), calforecastprob_from_distribution(np.squeeze(sr[:, 0, :, :]), np.squeeze(sr[:, 1, :, :]), np.squeeze(sr[:, 2, :, :]), hr, percentile_95)),
-            #"Brier_99": brier_score(calAWAPprob(hr, percentile_99), calforecastprob(sr, percentile_99)),
-            "Brier_99_dis": brier_score(calAWAPprob(hr, percentile_99), calforecastprob_from_distribution(np.squeeze(sr[:, 0, :, :]), np.squeeze(sr[:, 1, :, :]), np.squeeze(sr[:, 2, :, :]), hr, percentile_99)),
-            "Brier_995_dis": brier_score(calAWAPprob(hr, percentile_995), calforecastprob_from_distribution(np.squeeze(sr[:, 0, :, :]), np.squeeze(sr[:, 1, :, :]), np.squeeze(sr[:, 2, :, :]), hr, percentile_995)),
+            # "Brier_95_dis": brier_score(calAWAPprob(hr, percentile_95), calforecastprob_from_distribution(np.squeeze(sr[:, 0, :, :]), np.squeeze(sr[:, 1, :, :]), np.squeeze(sr[:, 2, :, :]), hr, percentile_95)),
+            # #"Brier_99": brier_score(calAWAPprob(hr, percentile_99), calforecastprob(sr, percentile_99)),
+            # "Brier_99_dis": brier_score(calAWAPprob(hr, percentile_99), calforecastprob_from_distribution(np.squeeze(sr[:, 0, :, :]), np.squeeze(sr[:, 1, :, :]), np.squeeze(sr[:, 2, :, :]), hr, percentile_99)),
+            # "Brier_995_dis": brier_score(calAWAPprob(hr, percentile_995), calforecastprob_from_distribution(np.squeeze(sr[:, 0, :, :]), np.squeeze(sr[:, 1, :, :]), np.squeeze(sr[:, 2, :, :]), hr, percentile_995)),
+            "alpha_dis": calculate_alpha_index(p.squeeze(sr[:, 0, :, :]), np.squeeze(sr[:, 1, :, :]), np.squeeze(sr[:, 2, :, :]), hr, num_values=10)
         }
         return metrics
     def brier_score(prob_AWAP, prob_forecast): 
@@ -412,7 +485,7 @@ def main(year, days):
         print("data_set length:", len(data_set))
         test_data = DataLoader(data_set, batch_size=18, shuffle=False, num_workers=args.n_threads, drop_last=True)
 
-        results = {metric: [] for metric in ["skil_dis","Brier_0_dis", "Brier_95_dis", "Brier_99_dis","Brier_995_dis"]}
+        results = {metric: [] for metric in ["alpha_dis"]} #"skil_dis", "mae_median_dis","Brier_95_dis", "Brier_99_dis","Brier_995_dis"，
 
         for batch, (pr, hr, _, access_date, awap_date, _) in enumerate(test_data):
             with torch.no_grad():
@@ -446,7 +519,7 @@ def main(year, days):
                 print(f"No results for {key}")
         
 if __name__ == '__main__':
-    years = [2006, 2007, 2018]
+    years = [2006,2007, 2018]
     days = 42  # Assuming days remain constant for each year.
     for year in years:
         main(year, days)

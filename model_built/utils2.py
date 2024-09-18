@@ -233,6 +233,7 @@ def CRPS_from_distribution(p_pred, alpha_pred, beta_pred, y_true, shave_border=4
     
     # Remove border pixels
     forecasts = np.expm1(forecasts * 7)
+    forecasts = np.clip(forecasts, None, 300)
     print("y_true value",y_true)
     # Calculate CRPS
     crps = ps.crps_ensemble(y_true, np.transpose(forecasts, (1, 2, 3, 0)))

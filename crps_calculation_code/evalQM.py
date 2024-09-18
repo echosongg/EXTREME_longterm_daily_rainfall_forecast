@@ -34,62 +34,43 @@ import properscoring as ps
 # ===========================================================
 # Training settings
 # ===========================================================
-def compute_pit(forecast, y_true):
-    '''
-    forecast: (ensemble, H, W) -> (9, 413, 267)
-    y_true: (H, W) -> (413, 267)
-    '''
-    ensemble, H, W = forecast.shape
-    
-    # 初始化 PIT 数组
-    PIT = np.zeros((H, W))
-    
-    # 对每个像素点计算 PIT 值
-    for h in range(H):
-        for w in range(W):
-            # 获取当前像素点的九个预测值
-            predictions = forecast[:, h, w]
-            
-            # 将预测值按升序排序
-            sorted_predictions = np.sort(predictions)
-            
-            # 找到真实值 y_true[h, w] 在排序预测值中的位置
-            if y_true[h, w] < sorted_predictions[0]:
-                PIT[h, w] = 0  # 真实值小于最小预测值
-            elif y_true[h, w] > sorted_predictions[-1]:
-                PIT[h, w] = 1  # 真实值大于最大预测值
-            else:
-                # 找到真实值在排序预测值中的位置并进行线性插值
-                for i in range(ensemble - 1):
-                    if sorted_predictions[i] <= y_true[h, w] <= sorted_predictions[i + 1]:
-                        # 线性插值计算 PIT
-                        PIT[h, w] = (i + (y_true[h, w] - sorted_predictions[i]) / 
-                                     (sorted_predictions[i + 1] - sorted_predictions[i])) / (ensemble + 1)
-                        break
-    return PIT
+def calculate_alpha_index(ensemble_forecasts, observations):
+    """
+    Optimized calculation of the alpha index for forecast reliability based on 3D PIT values.
 
-def alpha_index(forecast, y_true):
-    '''
-    forecast: (ensemble, H, W) -> (9, 413, 267)
-    y_true: (H, W) -> (413, 267)
-    '''
-    # 计算 PIT 值
-    PIT = compute_pit(forecast, y_true)
-    
-    # 排序 PIT 值
-    sorted_PIT = np.sort(PIT, axis=None)  # 将整个数组展平后排序
-    
-    # 样本数量
-    n = len(sorted_PIT)
-    
-    # 计算理想的均匀分布期望值
-    t_values = np.arange(1, n + 1)  # t 从 1 到 n
-    expected_values = t_values / (n + 1)
-    
-    # 计算 alpha 指数
-    alpha = 1 - (2 / n) * np.sum(sorted_PIT - expected_values)
-    
-    return alpha
+    Parameters:
+    pit_values (array-like): A 3D array of PIT (Probability Integral Transform) values,
+                             where the first two dimensions are spatial (x, y) and the third
+                             dimension represents ensemble members.
+
+    Returns:
+    np.ndarray: A 2D array of alpha index values where each element corresponds
+                to a spatial point (x, y) in the grid.
+    """
+    ensemble_forecasts = np.transpose(ensemble_forecasts, (1, 2, 0))
+    pit_values = ensemble_forecasts <= observations[:, :, np.newaxis]
+    # Get the shape of the PIT values array
+    x_size, y_size, ensemble_size = pit_values.shape
+    #print(f"Shape of pit_values: {pit_values.shape}") 
+
+    # Sort the PIT values along the ensemble dimension (axis 2)
+    pit_sorted = np.sort(pit_values, axis=2)
+
+    # Calculate expected uniform distribution values for the ensemble members (broadcasted)
+    expected_uniform = np.linspace(1 / (ensemble_size + 1), ensemble_size / (ensemble_size + 1), ensemble_size)
+    # Calculate the absolute differences between sorted PIT values and the expected uniform distribution
+    absolute_differences = np.abs(pit_sorted - expected_uniform[None, None, :])
+
+    # Sum the absolute differences along the ensemble member dimension (axis 2)
+    sum_absolute_differences = np.sum(absolute_differences, axis=2)
+
+    # Calculate the alpha index for each spatial point
+    alpha_values = 1 - (2 / ensemble_size) * sum_absolute_differences
+    print(f"Shape of sum_absolute_differences: {sum_absolute_differences.shape}") 
+
+    return alpha_values
+
+
 def mae(ens, hr):
     '''
     ens:(ensemble,H,W)
@@ -484,7 +465,7 @@ def main(year, days):
                     bias_median_qm = bias_median(a,b)
                     skill_QM = ps.crps_ensemble(b, np.transpose(a, (1, 2, 0)))
                     QM_mae = mae_mean(a,b)
-                    QM_alpha = alpha_index(a, b)
+                    QM_alpha = calculate_alpha_index(a, b)
                     prob_awap0 = calAWAPdryprob(b, 0.1)
                     prob_forecast_0 = calforecastdryprob(a, 0.1)
                     Brier_0.append((prob_awap0 - prob_forecast_0) ** 2)

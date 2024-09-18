@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap, BoundaryNorm
 from mpl_toolkits.basemap import Basemap, maskoceans
 import csv
-model_name = "model_G_i000006_20240610-011512"
-#model_name = "model_G_i000008_20240824-212330_with_huber"
+#model_name = "model_G_i000007_20240910-042620"
+model_name = "model_G_i000008_20240916-171624_with_huber"
 # 评估函数
 def evaluate(year, lead, draw=False, window=1):
 
@@ -118,24 +118,24 @@ def evaluate(year, lead, draw=False, window=1):
 
     def process_model_data(time):
         model_base_path = f"/scratch/iu60/xs5813/metric_results/"
-        #model_name = "model_G_i000006_20240401-042157"
         paths = [
-            # f"{model_base_path}skil/{model_name}/{year}/lead_time{time}_whole.npy",
-            # f"{model_base_path}mae_median/{model_name}/{year}/lead_time{time}_whole.npy",
-            # f"{model_base_path}mae_mean/{model_name}/{year}/lead_time{time}_whole.npy",
-            # f"{model_base_path}bias/{model_name}/{year}/lead_time{time}_whole.npy",
-            # #f"{model_base_path}bias_median/{model_name}/{year}/lead_time{time}_whole.npy",
-            # f"{model_base_path}relative_bias_5/{model_name}/{year}/lead_time{time}_whole.npy",
-            # f"{model_base_path}Brier_95/{model_name}/{year}/lead_time{time}_whole.npy",
-            # f"{model_base_path}Brier_99/{model_name}/{year}/lead_time{time}_whole.npy",
-            # f"{model_base_path}Brier_995/{model_name}/{year}/lead_time{time}_whole.npy",
+            f"{model_base_path}skil/{model_name}/{year}/lead_time{time}_whole.npy",
+            f"{model_base_path}mae_median/{model_name}/{year}/lead_time{time}_whole.npy",
+            f"{model_base_path}mae_mean/{model_name}/{year}/lead_time{time}_whole.npy",
+            f"{model_base_path}bias/{model_name}/{year}/lead_time{time}_whole.npy",
+            #f"{model_base_path}bias_median/{model_name}/{year}/lead_time{time}_whole.npy",
+            f"{model_base_path}relative_bias_5/{model_name}/{year}/lead_time{time}_whole.npy",
+            f"{model_base_path}Brier_95/{model_name}/{year}/lead_time{time}_whole.npy",
+            f"{model_base_path}Brier_99/{model_name}/{year}/lead_time{time}_whole.npy",
+            f"{model_base_path}Brier_995/{model_name}/{year}/lead_time{time}_whole.npy",
             f"{model_base_path}alpha/{model_name}/{year}/lead_time{time}_whole.npy",
             #f"{model_base_path}Brier_0_dis/{model_name}/{year}/lead_time{time}_whole.npy",
-            #f"{model_base_path}Brier_95_dis/{model_name}/{year}/lead_time{time}_whole.npy",
-            #f"{model_base_path}Brier_99_dis/{model_name}/{year}/lead_time{time}_whole.npy",
-            #f"{model_base_path}Brier_995_dis/{model_name}/{year}/lead_time{time}_whole.npy",
-            #distribution
-            #f"{model_base_path}skil_dis/{model_name}/{year}/lead_time{time}_whole.npy",
+            # f"{model_base_path}Brier_95_dis/{model_name}/{year}/lead_time{time}_whole.npy",
+            # f"{model_base_path}Brier_99_dis/{model_name}/{year}/lead_time{time}_whole.npy",
+            # f"{model_base_path}Brier_995_dis/{model_name}/{year}/lead_time{time}_whole.npy",
+            # #distribution
+            # f"{model_base_path}skil_dis/{model_name}/{year}/lead_time{time}_whole.npy",
+            # f"{model_base_path}mae_median_dis/{model_name}/{year}/lead_time{time}_whole.npy",
 #"lead time", "crpsss", "crps", "mae_median","mae_mean","bias","bias_median","relative_bias","relative_bias_2","relative_bias_4","relative_bias_5", "Brier0", "Brier95", "Brier99","Brier995", "Brier95dis", "Brier99dis","Brier995dis"
         ]
         data = []
