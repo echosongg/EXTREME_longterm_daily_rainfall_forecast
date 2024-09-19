@@ -1,0 +1,6 @@
+2024-09-19 01:44:20,726 - INFO - 1. forecasts calculated with shape: torch.Size([10, 9, 413, 267])
+2024-09-19 02:09:40,750 - INFO - 1. forecasts calculated with shape: torch.Size([10, 9, 413, 267])
+2024-09-19 02:09:40,752 - INFO - 2. forecasts calculated with shape: torch.Size([90, 413, 267])
+2024-09-19 11:59:56,809 - INFO - 1. forecasts calculated with shape: torch.Size([10, 9, 413, 267])
+2024-09-19 12:24:03,064 - INFO - 1. forecasts calculated with shape: torch.Size([10, 9, 413, 267])
+2024-09-19 12:24:03,083 - INFO - 2. forecasts calculated with shape: torch.Size([413, 267, 90])

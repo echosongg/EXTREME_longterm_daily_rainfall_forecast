@@ -4,7 +4,7 @@ import os
 import sys
 import numpy as np
 
-year = 2006
+year = 2018
 window = 1
 # norm = "bias_relative"  # ["crps_ss", "mae_median", "bias", "bias_median"]
 norm = "climatology"  # ["crps_ss", "mae_median", "bias", "bias_median"]
@@ -143,25 +143,43 @@ def load_prob995_data(lead_time):
         prob995_lead_time.append(prob995_data[idx])
     return np.array(prob995_lead_time, dtype=object)
 
-def load_heavy30_data(lead_time):
+def load_alpha_data(lead_time):
     data = aaa(lead_time)
-    heavy30_lead_time = []
+    alpha_lead_time = []
     base_path = "/scratch/iu60/xs5813/cli_metric_result/new_crps/save/climatology/"
-    heavy30_data = np.load(
-        base_path+'heavy30_climatology_' + str(
+    alpha_data = np.load(
+        base_path+'alpha_climatology_' + str(
             year) + '_all_lead_time_windows_' + str(window) + '.npy')
     dates_needs = date_range(date(year, 1, 1), date(year + 1, 7, 29))
     date_map = np.array(dates_needs)
-    print("time interval:", len(date_map))
-    print("The including files:", data.files)
     for _, target_date, _ in data.files:
         # print(target_date)
         idx = np.where(date_map == target_date)[0]
         print('corresponding index', idx)
         # print("AWAP pr:", climatology_data[idx])
         # climtology_lead_time.append(climatology_data[idx][0])
-        heavy30_lead_time.append(heavy30_data[idx])
-    return np.array(heavy30_lead_time, dtype=object)
+        alpha_lead_time.append(alpha_data[idx])
+    return np.array(alpha_lead_time, dtype=object)
+
+# def load_heavy30_data(lead_time):
+#     data = aaa(lead_time)
+#     heavy30_lead_time = []
+#     base_path = "/scratch/iu60/xs5813/cli_metric_result/new_crps/save/climatology/"
+#     heavy30_data = np.load(
+#         base_path+'heavy30_climatology_' + str(
+#             year) + '_all_lead_time_windows_' + str(window) + '.npy')
+#     dates_needs = date_range(date(year, 1, 1), date(year + 1, 7, 29))
+#     date_map = np.array(dates_needs)
+#     print("time interval:", len(date_map))
+#     print("The including files:", data.files)
+#     for _, target_date, _ in data.files:
+#         # print(target_date)
+#         idx = np.where(date_map == target_date)[0]
+#         print('corresponding index', idx)
+#         # print("AWAP pr:", climatology_data[idx])
+#         # climtology_lead_time.append(climatology_data[idx][0])
+#         heavy30_lead_time.append(heavy30_data[idx])
+#     return np.array(heavy30_lead_time, dtype=object)
 
 # def load_prob999_data(lead_time):
 #     data = aaa(lead_time)
@@ -305,6 +323,7 @@ def calculate_csv_file():
         bias_score = load_bias_data(lead_time)
         bias_median_score = load_bias_median_data(lead_time)
         realtive_bias_score = load_relative_bias_data(lead_time)
+        alpha_score = load_alpha_data(lead_time)
         print('total num of date:', climat.shape)
         climat = climat.mean(axis=0)
         #climat_log = climat_log.mean(axis=0)
@@ -333,6 +352,7 @@ def calculate_csv_file():
         file_bias = 'bias_climat_lead_time_' + str(lead_time)
         file_median_bias = 'bias_median_climat_lead_time_' + str(lead_time)
         file_relative_bias = 'relative_bias_5_climat_lead_time_' + str(lead_time)
+        file_alpha_bias = 'alpha_climat_lead_time_' + str(lead_time)
         base_path = "/scratch/iu60/xs5813/cli_metric_result/new_crps/save/"
 
         # 创建需要的目录
@@ -353,5 +373,6 @@ def calculate_csv_file():
         np.save(os.path.join(path_to_create, file_bias), np.array(bias_score, dtype=np.float64))
         np.save(os.path.join(path_to_create, file_median_bias), np.array(bias_median_score, dtype=np.float64))
         np.save(os.path.join(path_to_create, file_relative_bias), np.array(realtive_bias_score, dtype=np.float64))
+        np.save(os.path.join(path_to_create, file_alpha_bias), np.array(alpha_score, dtype=np.float64))
 
 calculate_csv_file()

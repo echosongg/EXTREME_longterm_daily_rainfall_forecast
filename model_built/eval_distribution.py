@@ -10,8 +10,27 @@ from datetime import timedelta, date, datetime
 import numpy as np
 import os
 import time
+import logging
 import properscoring as ps
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+# 创建./save目录，如果不存在的话
+log_dir = './save'
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir)
+
+# 定义日志文件路径
+log_file = os.path.join(log_dir, 'disttibution.log')
+
+# 配置logging模块
+logging.basicConfig(
+    level=logging.DEBUG,  # 设置日志记录级别（DEBUG, INFO, WARNING, ERROR, CRITICAL）
+    format='%(asctime)s - %(levelname)s - %(message)s',  # 日志输出格式
+    handlers=[
+        logging.FileHandler(log_file),  # 将日志输出到文件
+        logging.StreamHandler()  # 同时输出到控制台
+    ]
+)
 
 def calculate_alpha_index(p_pred, alpha_pred, beta_pred, observations, num_values=10):
     """
@@ -48,14 +67,14 @@ def calculate_alpha_index(p_pred, alpha_pred, beta_pred, observations, num_value
 
     # Apply transformation to forecasts and remove border pixels (expm1 for exponentiation)
     forecasts = torch.expm1(forecasts * 7)
-
+    logging.info(f"1. forecasts calculated with shape: {forecasts.shape}")
     # Transpose to match expected shape (bring num_values to last dimension)
-    forecasts = forecasts.permute(1, 2, 0)  # Shape becomes (413, 267, num_values)
-
+    forecasts = forecasts.view(-1, *observations.shape)
+    forecasts = forecasts.permute(1, 2, 0)
+    logging.info(f"2. forecasts calculated with shape: {forecasts.shape}")
     # Compare ensemble forecasts with observations to calculate PIT values
     pit_values = forecasts <= observations[:, :, None]
-    logging.info(f"forecasts calculated with shape: {forecasts.shape}")
-
+    
     # Get the shape of the PIT values array
     x_size, y_size, ensemble_size = pit_values.shape
 
@@ -468,7 +487,7 @@ def main(year, days):
             # #"Brier_99": brier_score(calAWAPprob(hr, percentile_99), calforecastprob(sr, percentile_99)),
             # "Brier_99_dis": brier_score(calAWAPprob(hr, percentile_99), calforecastprob_from_distribution(np.squeeze(sr[:, 0, :, :]), np.squeeze(sr[:, 1, :, :]), np.squeeze(sr[:, 2, :, :]), hr, percentile_99)),
             # "Brier_995_dis": brier_score(calAWAPprob(hr, percentile_995), calforecastprob_from_distribution(np.squeeze(sr[:, 0, :, :]), np.squeeze(sr[:, 1, :, :]), np.squeeze(sr[:, 2, :, :]), hr, percentile_995)),
-            "alpha_dis": calculate_alpha_index(p.squeeze(sr[:, 0, :, :]), np.squeeze(sr[:, 1, :, :]), np.squeeze(sr[:, 2, :, :]), hr, num_values=10)
+            "alpha_dis": calculate_alpha_index(np.squeeze(sr[:, 0, :, :]), np.squeeze(sr[:, 1, :, :]), np.squeeze(sr[:, 2, :, :]), hr, num_values=10)
         }
         return metrics
     def brier_score(prob_AWAP, prob_forecast): 
@@ -519,7 +538,7 @@ def main(year, days):
                 print(f"No results for {key}")
         
 if __name__ == '__main__':
-    years = [2006,2007, 2018]
+    years = [2006]
     days = 42  # Assuming days remain constant for each year.
     for year in years:
         main(year, days)
