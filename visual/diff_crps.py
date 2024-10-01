@@ -98,7 +98,7 @@ def diff(year, leadingtime, method="QM"):
     lon = awap_data.lon.values
     
     base_path = "/scratch/iu60/xs5813/metric_results/"
-    mymodel_path = f"{base_path}skil_dis/model_G_i000008_20240824-212330_with_huber/{year}/lead_time{leadingtime}_whole.npy"
+    mymodel_path = f"{base_path}skil_dis/model_G_i000008_20240916-171624_with_huber/{year}/lead_time{leadingtime}_whole.npy"
     compare_path = ""
 
     if method == "QM":
@@ -107,7 +107,7 @@ def diff(year, leadingtime, method="QM"):
         #compare_path = f"/scratch/iu60/xs5813/cli_metric_result/new_crps/save/climatology/prob{pct}_climat_lead_time_{leadingtime}.npy"
         compare_path = f"/scratch/iu60/xs5813/cli_metric_result/new_crps/save/climatology/mean_climatology/{year}/window1/climat_lead_time_{leadingtime}.npy"
     elif method == "DESRGAN":
-        compare_path = f"{base_path}skil/model_G_i000006_20240610-011512/{year}/lead_time{leadingtime}_whole.npy"
+        compare_path = f"{base_path}skil/model_G_i000007_20240910-042620/{year}/lead_time{leadingtime}_whole.npy"
     else:
         print("输入的方法名称有误，请检查！")
         return
@@ -129,7 +129,7 @@ def diff_average(year, leadingtime_start,leadingtime_end, method="QM"):
     lat = awap_data.lat.values
     lon = awap_data.lon.values
     base_path = "/scratch/iu60/xs5813/metric_results/"
-    model_prefix = f"{base_path}skil_dis/model_G_i000008_20240824-212330_with_huber/{year}/lead_time"
+    model_prefix = f"{base_path}skil_dis/model_G_i000008_20240916-171624_with_huber/{year}/lead_time"
     compare_prefix = ""
 
     if method == "QM":
@@ -137,7 +137,7 @@ def diff_average(year, leadingtime_start,leadingtime_end, method="QM"):
     elif method == "climatology":
         compare_prefix = f"/scratch/iu60/xs5813/cli_metric_result/new_crps/save/climatology/mean_climatology/{year}/window1/climat_lead_time_"
     elif method == "DESRGAN":
-        compare_prefix = f"{base_path}skil/model_G_i000006_20240610-011512/{year}/lead_time"
+        compare_prefix = f"{base_path}skil/model_G_i000007_20240910-042620/{year}/lead_time"
     else:
         print("输入的方法名称有误，请检查！")
         return
@@ -179,3 +179,13 @@ def diff_average(year, leadingtime_start,leadingtime_end, method="QM"):
 #diff(2018,40,method="DESRGAN")
 #diff_average(2007,0,41,method="climatology")
 diff_average(2007,0,41,method="DESRGAN")
+diff_average(2007,0,41,method="climatology")
+diff_average(2007,0,41,method="QM")
+
+diff_average(2006,0,41,method="DESRGAN")
+diff_average(2006,0,41,method="climatology")
+diff_average(2006,0,41,method="QM")
+
+diff_average(2018,0,41,method="DESRGAN")
+diff_average(2018,0,41,method="climatology")
+diff_average(2018,0,41,method="QM")

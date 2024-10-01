@@ -345,7 +345,7 @@ def CRPS_from_distribution(p_pred, alpha_pred, beta_pred, y_true, history, shave
 
 def main(year, days):
 
-    model_name = 'model_G_i000008_20240916-171624_with_huber'
+    model_name = 'model_G_i000008_20240824-212330_with_huber'
     version = "TestRefactored"
     Brier_startyear = 1976
     Brier_endyear = 2005
@@ -479,7 +479,7 @@ def main(year, days):
         metrics = {
             #"skil_dis": CRPS_from_distribution(np.squeeze(sr[:, 0, :, :]), np.squeeze(sr[:, 1, :, :]), np.squeeze(sr[:, 2, :, :]), hr,history),
             #change
-            #"mae_median_dis": mae_median(np.squeeze(sr[:, 0, :, :]), np.squeeze(sr[:, 1, :, :]), np.squeeze(sr[:, 2, :, :]), hr),
+            "mae_median_dis": mae_median(np.squeeze(sr[:, 0, :, :]), np.squeeze(sr[:, 1, :, :]), np.squeeze(sr[:, 2, :, :]), hr),
             #"Brier_0": brier_score(calAWAPdryprob(hr, 0.1), calforecastdryprob(sr, 0.1)),
             #"Brier_0_dis": brier_score(calAWAPdryprob(hr, 0.1), np.squeeze(sr[:, 0, :, :])),
             #"Brier_95": brier_score(calAWAPprob(hr, percentile_95), calforecastprob(sr, percentile_95)),
@@ -487,7 +487,7 @@ def main(year, days):
             # #"Brier_99": brier_score(calAWAPprob(hr, percentile_99), calforecastprob(sr, percentile_99)),
             # "Brier_99_dis": brier_score(calAWAPprob(hr, percentile_99), calforecastprob_from_distribution(np.squeeze(sr[:, 0, :, :]), np.squeeze(sr[:, 1, :, :]), np.squeeze(sr[:, 2, :, :]), hr, percentile_99)),
             # "Brier_995_dis": brier_score(calAWAPprob(hr, percentile_995), calforecastprob_from_distribution(np.squeeze(sr[:, 0, :, :]), np.squeeze(sr[:, 1, :, :]), np.squeeze(sr[:, 2, :, :]), hr, percentile_995)),
-            "alpha_dis": calculate_alpha_index(np.squeeze(sr[:, 0, :, :]), np.squeeze(sr[:, 1, :, :]), np.squeeze(sr[:, 2, :, :]), hr, num_values=10)
+            #"alpha_dis": calculate_alpha_index(np.squeeze(sr[:, 0, :, :]), np.squeeze(sr[:, 1, :, :]), np.squeeze(sr[:, 2, :, :]), hr, num_values=10)
         }
         return metrics
     def brier_score(prob_AWAP, prob_forecast): 
@@ -504,7 +504,7 @@ def main(year, days):
         print("data_set length:", len(data_set))
         test_data = DataLoader(data_set, batch_size=18, shuffle=False, num_workers=args.n_threads, drop_last=True)
 
-        results = {metric: [] for metric in ["alpha_dis"]} #"skil_dis", "mae_median_dis","Brier_95_dis", "Brier_99_dis","Brier_995_dis"，
+        results = {metric: [] for metric in ["mae_median_dis"]} #"skil_dis", "mae_median_dis","Brier_95_dis", "Brier_99_dis","Brier_995_dis"，
 
         for batch, (pr, hr, _, access_date, awap_date, _) in enumerate(test_data):
             with torch.no_grad():
