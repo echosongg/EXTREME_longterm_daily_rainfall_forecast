@@ -181,103 +181,6 @@ def calculate_alpha_index(pit_values):
 
     return alpha_values
 
-
-def mae(ens, hr):
-    '''
-    ens:(ensemble,H,W)
-    hr: (H,W)
-    '''
-    return np.abs((ens - hr)).sum(axis=0) / ens.shape[0]
-
-
-def bias(ens, hr):
-    '''
-    ens:(ensemble,H,W)
-    hr: (H,W)
-    '''
-    return (ens - hr).sum(axis=0) / ens.shape[0]
-
-
-def bias_median(ens, hr):
-    '''
-    ens:(ensemble,H,W)
-    hr: (H,W)
-    '''
-    return np.median(ens, axis=0) - hr
-
-
-def bias_relative(ens, hr, constant=1):
-    '''
-    ens:(ensemble,H,W)
-    hr: (H,W)
-    constant: relative constant
-    '''
-    return (np.mean(ens, axis=0) - hr) / (constant + hr)
-
-
-def bias_relative_median(ens, hr, constant=1):
-    '''
-    ens:(ensemble,H,W)
-    hr: (H,W)
-    constant: relative constant
-    '''
-    return (np.median(ens, axis=0) - hr) / (constant + hr)
-
-
-def rmse(ens, hr):
-    '''
-    ens:(ensemble,H,W)
-    hr: (H,W)
-    '''
-    return np.sqrt(((ens - hr) ** 2).sum(axis=(0)) / ens.shape[0])
-
-
-def mae_mean(ens, hr):
-    '''
-    ens:(ensemble,H,W)
-    hr: (H,W)
-    '''
-    return np.abs((ens.mean(axis=0) - hr))
-
-
-def mae_median(ens, hr):
-    '''
-    ens:(ensemble,H,W)
-    hr: (H,W)
-    '''
-    return np.abs((np.median(ens, axis=0) - hr))
-
-def calAWAPprob(AWAP_data, percentile):
-    ''' 
-    input: AWAP_data is  413 * 267
-            percentile size is 413 * 267
-    return: A probability matrix which size is 413 * 267 indicating the probability of the values in ensemble forecast 
-    is greater than the value in the same pixel in percentile matrix
-
-    '''
-
-    return (AWAP_data > percentile) * 1
-
-def calforecastprob(forecast, percentile):
-    ''' 
-    input: forecast is  9 * 413 * 267
-            percentile size is 413 * 267
-    return: A probability matrix which size is 413 * 267 indicating the probability of the values in ensemble forecast 
-    is greater than the value in the same pixel in percentile matrix
-
-    '''
-    prob_matrix = (forecast > percentile)
-    return np.mean(prob_matrix, axis = 0)
-
-def calAWAPdryprob(AWAP_data, percentile):
-
-    return (AWAP_data >= percentile) * 1
-
-def calforecastdryprob(forecast, percentile):
-
-    prob_matrix = (forecast >= percentile)
-    return np.mean(prob_matrix, axis = 0)   
-
 class ACCESS_AWAP_cali(Dataset):
     '''
 
@@ -417,9 +320,6 @@ def write_log(log, args):
 def main(year, days):
     Brier_startyear = 1976
     Brier_endyear = 2005
-    percentile_95 = dpt.AWAPcalpercentile(Brier_startyear, Brier_endyear, 95)
-    percentile_99 = dpt.AWAPcalpercentile(Brier_startyear, Brier_endyear, 99)
-    percentile_995 = dpt.AWAPcalpercentile(Brier_startyear, Brier_endyear, 99.5)
     #percentile_999 = dpt.AWAPcalpercentile(Brier_startyear, Brier_endyear, 99.9)
     parser = argparse.ArgumentParser(description='PyTorch Super Res Example')
     # Hardware specifications
@@ -537,26 +437,7 @@ def main(year, days):
                                batch_size=args.batch_size,
                                shuffle=False,
                                num_workers=args.n_threads, drop_last=False)
-
-        mean_bias_model = []
-        mean_bias_median_model = []
-        mean_crps_model = []
-        mae_score = []
-        Brier_0 = []
-        Brier95 = []
-        Brier99 = []
-        Brier995 = []
-        Brier999 = []
-        heavy30 = []
         pit = []
-        mae_median_score_model = []
-        mean_bias_relative_model = []
-        mean_bias_relative_model_half = []
-        mean_bias_relative_model_1 = []
-        mean_bias_relative_model_2 = []
-        mean_bias_relative_model_2d9 = []
-        mean_bias_relative_model_3 = []
-        mean_bias_relative_model_5 = []
 
         for batch, (pr, dem, hr, en, data_time, idx) in enumerate(test_data):
 
@@ -571,46 +452,8 @@ def main(year, days):
                         sr_np[i * args.ensemble:(i + 1) * args.ensemble])
                     b = np.squeeze(hr_np[i * args.ensemble])
 
-                    # for each ensemble member
-                    bias_QM = bias(a, b)
-                    bias_median_qm = bias_median(a,b)
-                    skill_QM = ps.crps_ensemble(b, np.transpose(a, (1, 2, 0)))
-                    QM_mae = mae_mean(a,b)
                     QM_pit = calculate_pit_values(a, b)
-                    prob_awap0 = calAWAPdryprob(b, 0.1)
-                    prob_forecast_0 = calforecastdryprob(a, 0.1)
-                    Brier_0.append((prob_awap0 - prob_forecast_0) ** 2)
-                    prob_AWAP_95 = calAWAPprob(b, percentile_95)
-                    prob_forecast_95 = calforecastprob(a, percentile_95)
-                    Brier95.append((prob_AWAP_95 - prob_forecast_95) ** 2)
-                    prob_AWAP_99 = calAWAPprob(b, percentile_99)
-                    prob_forecast_99 = calforecastprob(a, percentile_99)
-                    Brier99.append((prob_AWAP_99 - prob_forecast_99) ** 2)
-                    prob_AWAP_995 = calAWAPprob(b, percentile_995)
-                    prob_forecast_995 = calforecastprob(a, percentile_995)
-                    Brier995.append((prob_AWAP_995 - prob_forecast_995) ** 2)
-                    #prob_AWAP_heavy30 = calAWAPprob(b, np.full(hr.shape, 30))
-                    #prob_forecast_heavy30 = calforecastprob(a, np.full(hr.shape, 30))
-                    #heavy30.append((prob_AWAP_heavy30 - prob_forecast_heavy30) ** 2)
-                    #prob_AWAP_999 = calAWAPprob(b, percentile_999)
-                    #prob_forecast_999 = calforecastprob(a, percentile_999)
-                    #Brier999.append((prob_AWAP_999 - prob_forecast_999) ** 2)
-                    mae_median_score = mae_median(a, b)
-                    bias_relative_3 = bias_relative(a, b, constant=3)
-                    bias_relative_5 = bias_relative_median(a, b, constant=5)
-                    mean_bias_model.append(bias_QM)
-                    mean_bias_median_model.append(bias_median_qm)
-                    mae_score.append(QM_mae)
-
-                    mean_crps_model.append(skill_QM)
                     pit.append(QM_pit)
-                    mae_median_score_model.append(mae_median_score)
-                    # mean_bias_relative_model_half.append(bias_relative_half)
-                    # mean_bias_relative_model_1.append(bias_relative_1)
-                    # mean_bias_relative_model_2.append(bias_relative_2)
-                    # mean_bias_relative_model_2d9.append(bias_relative_2d9)
-                    mean_bias_relative_model_3.append(bias_relative_3)
-                    mean_bias_relative_model_5.append(bias_relative_5)
 
         # if not os.path.exists("/scratch/iu60/rw6151/new_crps/save/bias/QM/" + str(year)):
         #     os.mkdir("/scratch/iu60/rw6151/new_crps/save/bias/QM/" + str(year))
@@ -625,26 +468,13 @@ def main(year, days):
         base_path = "/scratch/iu60/xs5813/qm/new_crps/save"
 
         # 定义需要创建的文件夹列表
-        folders = ["bias/QM", "bias_median/QM","mae/QM", "mae_median/QM","Brier0/QM", "Brier95/QM", "Brier99/QM", "Brier995/QM","heavy30/QM","crps_ss/QM", "relative_bias/QM","relative_bias_5/QM","alpha/QM"]
+        folders = ["alpha_no_plus/QM"]
         pit = np.stack(pit, axis=0)
         # 循环创建所需的文件夹路径
         for folder in folders:
             folder_path = os.path.join(base_path, folder, str(year))
             os.makedirs(folder_path, exist_ok=True)  # 创建文件夹，如果已存在则忽略
             data_to_save = {
-                "bias/QM": np.mean(mean_bias_model, axis=0),
-                "bias_median/QM": np.mean(mean_bias_median_model, axis=0),
-                "mae/QM": np.mean(mae_score, axis=0),
-                "mae_median/QM": np.mean(mae_median_score_model, axis=0),
-                "Brier0/QM": np.mean(Brier_0, axis=0),
-                "Brier95/QM": np.mean(Brier95, axis=0),
-                "Brier99/QM": np.mean(Brier99, axis=0),
-                "Brier995/QM": np.mean(Brier995, axis=0),
-                "heavy30/QM": np.mean(heavy30, axis=0),
-                #"Brier999/QM": np.mean(Brier999, axis=0),
-                "crps_ss/QM": np.mean(mean_crps_model, axis=0),
-                "relative_bias/QM": np.mean(mean_bias_relative_model_3, axis=0),
-                "relative_bias_5/QM": np.mean(mean_bias_relative_model_3, axis=0),
                 "alpha_no_plus/QM": calculate_alpha_index(pit)
             }
             #print(f"Average of {folder}: {np.mean(data_to_save[folder])}")

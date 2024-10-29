@@ -32,84 +32,93 @@ logging.basicConfig(
     ]
 )
 
-def calculate_alpha_index(p_pred, alpha_pred, beta_pred, observations, num_values=10):
+def calculate_pit_values(ensemble_forecasts, observations, epsilon=1e-6):
+    """
+    Calculate PIT (Probability Integral Transform) values for 3D ensemble forecasts.
+
+    Parameters:
+    ensemble_forecasts (array-like): A 3D array where dimensions represent:
+                                     (Horizontal axis, Vertical axis, Ensemble member)
+    observations (array-like): A 2D array of corresponding observed values with dimensions:
+                               (Horizontal axis, Vertical axis)
+    epsilon (float): A tiny value to adjust PIT away from extremes (default: 1e-6)
+
+    Returns:
+    array: A 2D array of PIT values with the same shape as observations.
+    """
+    # Ensure inputs are numpy arrays
+    ensemble_forecasts = np.array(ensemble_forecasts)
+    observations = np.array(observations)
+
+    # Check input shapes
+    if ensemble_forecasts.ndim != 3 or observations.ndim != 2:
+        raise ValueError(
+            "Input dimensions are incorrect. ensemble_forecasts should be 3D and observations should be 2D.")
+
+    if ensemble_forecasts.shape[:2] != observations.shape:
+        raise ValueError("Horizontal and vertical dimensions of ensemble_forecasts and observations must match.")
+
+    # Count the total number of ensemble members
+    n_ensemble = ensemble_forecasts.shape[-1]
+
+    # Sort each ensemble forecast
+    sorted_forecasts = np.sort(ensemble_forecasts, axis=-1)
+
+    # Calculate left and right ranks
+    left_ranks = np.zeros_like(observations, dtype=int)
+    right_ranks = np.zeros_like(observations, dtype=int)
+
+    for i in range(observations.shape[0]):
+        for j in range(observations.shape[1]):
+            left_ranks[i, j] = np.searchsorted(sorted_forecasts[i, j], observations[i, j], side='left')
+            right_ranks[i, j] = np.searchsorted(sorted_forecasts[i, j], observations[i, j], side='right')
+
+    # Generate random values for cases where left_rank != right_rank
+    random_values = np.random.random(observations.shape)
+
+    # Calculate PIT values
+    pit_values = np.where(
+        left_ranks != right_ranks,
+        (left_ranks + random_values * (right_ranks - left_ranks)) / n_ensemble,
+        left_ranks / n_ensemble
+    )
+
+    # Apply the tiny perturbation to avoid extreme values of 0 and 1
+    pit_values = np.clip(pit_values, epsilon, 1 - epsilon)
+
+    return pit_values
+
+
+def calculate_alpha_index(pit_values):
     """
     Optimized calculation of the alpha index for forecast reliability based on 3D PIT values.
 
     Parameters:
-    p_pred (array-like): A 2D array of predicted probabilities for rain.
-    alpha_pred (array-like): A 2D array of predicted alpha values for the gamma distribution.
-    beta_pred (array-like): A 2D array of predicted beta values for the gamma distribution.
-    observations (array-like): A 2D array of true observed rainfall values.
-    num_values (int): The number of ensemble forecasts to generate.
+    pit_values (array-like): A 3D array of PIT (Probability Integral Transform) values,
+                             where the first dimension represents starting times and the
+                             second and third dimensions are spatial (x, y).
 
     Returns:
-    torch.Tensor: A 2D tensor of alpha index values where each element corresponds
-                  to a spatial point (x, y) in the grid.
+    np.ndarray: A 2D array of alpha index values where each element corresponds
+                to a spatial point (x, y) in the grid.
     """
-
-    # Convert inputs to PyTorch tensors and move to GPU
-    p_pred = torch.tensor(p_pred, dtype=torch.float32, device=device)
-    alpha_pred = torch.tensor(alpha_pred, dtype=torch.float32, device=device)
-    beta_pred = torch.tensor(beta_pred, dtype=torch.float32, device=device)
-    observations = torch.tensor(observations, dtype=torch.float32, device=device)
-    
-    # Clamp alpha and beta to avoid zero or negative values
-    alpha_pred = torch.clamp(alpha_pred, min=1e-6)
-    beta_pred = torch.clamp(beta_pred, min=1e-6)
-
-    # Generate ensemble forecasts
-    forecasts = torch.zeros((num_values, *p_pred.shape), dtype=torch.float32, device=device)
-    for i in range(num_values):
-        is_rain = torch.bernoulli(p_pred)  # Simulate rain occurrence
-        rain_amount = torch.distributions.gamma.Gamma(alpha_pred, 1 / beta_pred).sample()  # Rain amount from gamma distribution
-        forecasts[i] = is_rain * rain_amount  # Multiply rain occurrence by amount
-
-    # Apply transformation to forecasts and remove border pixels (expm1 for exponentiation)
-    forecasts = torch.expm1(forecasts * 7)
-    logging.info(f"1. forecasts calculated with shape: {forecasts.shape}")
-    # Transpose to match expected shape (bring num_values to last dimension)
-    forecasts = forecasts.view(-1, *observations.shape)
-    forecasts = forecasts.permute(1, 2, 0)
-    logging.info(f"2. forecasts calculated with shape: {forecasts.shape}")
-    # Compare ensemble forecasts with observations to calculate PIT values
-    pit_values = forecasts <= observations[:, :, None]
-    
     # Get the shape of the PIT values array
-    x_size, y_size, ensemble_size = pit_values.shape
+    date_size, x_size, y_size = pit_values.shape
 
-    # Sort the PIT values along the ensemble dimension (axis 2)
-    pit_sorted = torch.sort(pit_values, dim=2).values  # Sort PIT values along last dimension (ensemble members)
+    # Sort the PIT values along the ensemble dimension (axis 0)
+    pit_sorted = np.sort(pit_values, axis=0)
 
     # Calculate expected uniform distribution values for the ensemble members (broadcasted)
-    expected_uniform = torch.linspace(1 / (ensemble_size + 1), ensemble_size / (ensemble_size + 1), ensemble_size, device=device)
+    expected_uniform = np.linspace(1 / (date_size + 1), date_size / (date_size + 1), date_size)
 
     # Calculate the absolute differences between sorted PIT values and the expected uniform distribution
-    absolute_differences = torch.abs(pit_sorted - expected_uniform[None, None, :])
+    absolute_differences = np.abs(pit_sorted - expected_uniform[:, None, None])
 
-    # Sum the absolute differences along the ensemble member dimension (axis 2)
-    sum_absolute_differences = torch.sum(absolute_differences, dim=2)
+    # Sum the absolute differences along the ensemble member dimension (axis 0)
+    sum_absolute_differences = np.sum(absolute_differences, axis=0)
 
     # Calculate the alpha index for each spatial point
-    alpha_values = 1 - (2 / ensemble_size) * sum_absolute_differences
-    # 
-
-    logging.info(f"alpha_values calculated with shape: {alpha_values.shape}")
-
-    return alpha_values
-    
-
-def calAWAPprob(AWAP_data, percentile):
-    ''' 
-    input: AWAP_data is  413 * 267
-            percentile size is 413 * 267
-    return: A probability matrix which size is 413 * 267 indicating the probability of the values in ensemble forecast 
-    is greater than the value in the same pixel in percentile matrix
-
-    '''
-
-    
-    return (AWAP_data > percentile) * 1
+    alpha_values = 1 - (2 / date_size) * sum_absolute_differences
 
 def calforecastprob_from_distribution(p_pred, alpha_pred, beta_pred, y_true, percentile, shave_border=0, num_values=10):
     # Initialize prediction matrices

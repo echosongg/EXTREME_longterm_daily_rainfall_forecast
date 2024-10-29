@@ -29,6 +29,7 @@ def calculate_pit_values(ensemble_forecasts, observations, epsilon=1e-6):
     # Ensure inputs are numpy arrays
     ensemble_forecasts = np.array(ensemble_forecasts)
     observations = np.array(observations)
+    ensemble_forecasts = np.transpose(ensemble_forecasts, (1, 2, 0))
 
     # Check input shapes
     if ensemble_forecasts.ndim != 3 or observations.ndim != 2:
@@ -39,7 +40,7 @@ def calculate_pit_values(ensemble_forecasts, observations, epsilon=1e-6):
         raise ValueError("Horizontal and vertical dimensions of ensemble_forecasts and observations must match.")
 
     # Count the total number of ensemble members
-    n_ensemble = ensemble_forecasts.shape[-1] + 1
+    n_ensemble = ensemble_forecasts.shape[-1]
 
     # Sort each ensemble forecast
     sorted_forecasts = np.sort(ensemble_forecasts, axis=-1)
@@ -65,7 +66,63 @@ def calculate_pit_values(ensemble_forecasts, observations, epsilon=1e-6):
 
     # Apply the tiny perturbation to avoid extreme values of 0 and 1
     pit_values = np.clip(pit_values, epsilon, 1 - epsilon)
-    print("pit shape",pit_values.shape)
+
+    return pit_values
+
+def calculate_pit_values_plus(ensemble_forecasts, observations, epsilon=1e-6):
+    """
+    Calculate PIT (Probability Integral Transform) values for 3D ensemble forecasts.
+
+    Parameters:
+    ensemble_forecasts (array-like): A 3D array where dimensions represent:
+                                     (Horizontal axis, Vertical axis, Ensemble member)
+    observations (array-like): A 2D array of corresponding observed values with dimensions:
+                               (Horizontal axis, Vertical axis)
+    epsilon (float): A tiny value to adjust PIT away from extremes (default: 1e-6)
+
+    Returns:
+    array: A 2D array of PIT values with the same shape as observations.
+    """
+    # Ensure inputs are numpy arrays
+    ensemble_forecasts = np.array(ensemble_forecasts)
+    observations = np.array(observations)
+    ensemble_forecasts = np.transpose(ensemble_forecasts, (1, 2, 0))
+
+    # Check input shapes
+    if ensemble_forecasts.ndim != 3 or observations.ndim != 2:
+        raise ValueError(
+            "Input dimensions are incorrect. ensemble_forecasts should be 3D and observations should be 2D.")
+
+    if ensemble_forecasts.shape[:2] != observations.shape:
+        raise ValueError("Horizontal and vertical dimensions of ensemble_forecasts and observations must match.")
+
+    # Count the total number of ensemble members
+    n_ensemble = ensemble_forecasts.shape[-1]+1
+
+    # Sort each ensemble forecast
+    sorted_forecasts = np.sort(ensemble_forecasts, axis=-1)
+
+    # Calculate left and right ranks
+    left_ranks = np.zeros_like(observations, dtype=int)
+    right_ranks = np.zeros_like(observations, dtype=int)
+
+    for i in range(observations.shape[0]):
+        for j in range(observations.shape[1]):
+            left_ranks[i, j] = np.searchsorted(sorted_forecasts[i, j], observations[i, j], side='left')
+            right_ranks[i, j] = np.searchsorted(sorted_forecasts[i, j], observations[i, j], side='right')
+
+    # Generate random values for cases where left_rank != right_rank
+    random_values = np.random.random(observations.shape)
+
+    # Calculate PIT values
+    pit_values = np.where(
+        left_ranks != right_ranks,
+        (left_ranks + random_values * (right_ranks - left_ranks)) / n_ensemble,
+        left_ranks / n_ensemble
+    )
+
+    # Apply the tiny perturbation to avoid extreme values of 0 and 1
+    pit_values = np.clip(pit_values, epsilon, 1 - epsilon)
 
     return pit_values
 
@@ -100,111 +157,8 @@ def calculate_alpha_index(pit_values):
 
     # Calculate the alpha index for each spatial point
     alpha_values = 1 - (2 / date_size) * sum_absolute_differences
-    
-def mae_mean(ens, hr):
-    '''
-    ens:(ensemble,H,W)
-    hr: (H,W)
-    '''
-    return np.abs((ens.mean(axis=0) - hr))
 
-
-def mae_median(ens, hr):
-    '''
-    ens:(ensemble,H,W)
-    hr: (H,W)
-    '''
-    return np.abs((np.median(ens, axis=0) - hr))
-
-
-def bias(ens, hr):
-    '''
-    ens:(ensemble,H,W)
-    hr: (H,W)
-    '''
-    return (ens - hr).sum(axis=0) / ens.shape[0]
-
-
-def bias_median(ens, hr):
-    '''
-    ens:(ensemble,H,W)
-    hr: (H,W)
-    '''
-    return np.median(ens, axis=0) - hr
-
-def bias_relative(ens, hr, constant=1):
-    '''
-    ens:(ensemble,H,W)
-    hr: (H,W)
-    constant: relative constant
-    '''
-    return (np.mean(ens, axis=0) - hr) / (constant + hr)
-
-
-def bias_relative_median(ens, hr, constant=1):
-    '''
-    ens:(ensemble,H,W)
-    hr: (H,W)
-    constant: relative constant
-    '''
-    return (np.median(ens, axis=0) - hr) / (constant + hr)
-
-def calAWAPprob(AWAP_data, percentile):
-    ''' 
-    input: AWAP_data is  413 * 267
-            percentile size is 413 * 267
-    return: A probability matrix which size is 413 * 267 indicating the probability of the values in ensemble forecast 
-    is greater than the value in the same pixel in percentile matrix
-
-    '''
-
-    
-    return (AWAP_data > percentile) * 1
-
-
-def calforecastprob(forecast, percentile):
-    ''' 
-    input: forecast is  9 * 413 * 267
-            percentile size is 413 * 267
-    return: A probability matrix which size is 413 * 267 indicating the probability of the values in ensemble forecast 
-    is greater than the value in the same pixel in percentile matrix
-
-    '''
-    
-    prob_matrix = (forecast > percentile)
-    return np.mean(prob_matrix, axis = 0)
-
-def calAWAPdryprob(AWAP_data, percentile):
-
-    return (AWAP_data >= percentile) * 1
-
-def calforecastdryprob(forecast, percentile):
-
-    prob_matrix = (forecast >= percentile)
-    return np.mean(prob_matrix, axis = 0)   
-    
-# def relative_bias(ens, hr):
-
-#     return (ens - hr).sum(axis=0) / ens.shape[0] / hr
-
-def rmse(ens, hr):
-    '''
-    ens:(ensemble,H,W)
-    hr: (H,W)
-    '''
-    return np.sqrt(((ens - hr) ** 2).sum(axis=(0)) / ens.shape[0])
-
-def mae(ens, hr):
-    '''
-    ens:(ensemble,H,W)
-    hr: (H,W)
-    '''
-    return np.abs((ens - hr)).sum(axis=0) / ens.shape[0]
-
-# ===========================================================
-# Training settings
-# ===========================================================
-
+    return alpha_values
 
 class ACCESS_AWAP_cali(Dataset):
     '''
@@ -337,7 +291,7 @@ def write_log(log, args):
 def main(year, days):
 
     model_name = 'model_G_i000007_20240910-042620'
-    model_name = 'model_G_i000006_20240610-011512'
+    #model_name = 'model_G_i000006_20240610-011512'
     #model_name = 'model_G_i000008_20240824-212330_with_huber'
     version = "TestRefactored"
     #30 year
@@ -455,36 +409,12 @@ def main(year, days):
     args.test_start_time = datetime(year, 1, 1)
     args.test_end_time = datetime(year, 12, 31)
 
-    write_log("start", args)
-    percentile_95 = dpt.AWAPcalpercentile(Brier_startyear, Brier_endyear, 95)
-    print("percentile 95 is : ", percentile_95)
-    # print("type of percentile95", type(percentile_95))
-    # print("The size of percentile95 ", len(percentile_95))
-    # print("The size of percentile95[0] ", len(percentile_95[0]))
-    # print('Maximum  value of percentile 95 ', percentile_95.max())
-    percentile_99 = dpt.AWAPcalpercentile(Brier_startyear, Brier_endyear, 99)
-    print("percentile 99 is : ", percentile_99)
-    percentile_995 = dpt.AWAPcalpercentile(Brier_startyear, Brier_endyear, 99.5)
-    pit = calculate_pit_values(sr, hr)
-
     def compute_metrics(sr, hr, args):
         print("hr.shape",hr.shape)
         print("sr.shape",np.transpose(sr, (1, 2, 0)).shape)
         metrics = {
-            # "mae": mae(sr, hr),
-            # "mae_mean": mae_mean(sr, hr),
-            # "mae_median": mae_median(sr, hr),
-            # "bias": bias(sr, hr),
-            # "bias_median": bias_median(sr, hr),
-            # "rmse": rmse(sr, hr),
-            # "skil": ps.crps_ensemble(hr, np.transpose(sr, (1, 2, 0))),
-            # "relative_bias_5": bias_relative(sr, hr, constant=5),
-            # #"Brier_0": brier_score(calAWAPdryprob(hr, 0.1), calforecastdryprob(sr, 0.1)),
-            # "Brier_95": brier_score(calAWAPprob(hr, percentile_95), calforecastprob(sr, percentile_95)),
-            # "Brier_99": brier_score(calAWAPprob(hr, percentile_99), calforecastprob(sr, percentile_99)),
-            # "Brier_995": brier_score(calAWAPprob(hr, percentile_995), calforecastprob(sr, percentile_995)),
-            "alpha": calculate_alpha_index(pit)
-            "alpha2": 
+            "alpha": calculate_pit_values(sr, hr),
+            "alpha_plus": calculate_pit_values_plus(sr, hr)
         }
         return metrics
 
@@ -499,7 +429,7 @@ def main(year, days):
         print("data_set length:", len(data_set))
         test_data = DataLoader(data_set, batch_size=18, shuffle=False, num_workers=args.n_threads, drop_last=True)
 
-        results = {metric: [] for metric in ["alpha"]}#"mae", "mae_mean", "mae_median", "bias", "bias_median", "rmse", "skil", "relative_bias_5", "Brier_95", "Brier_99","Brier_995", 
+        results = {metric: [] for metric in ["alpha", "alpha_plus"]}#"mae", "mae_mean", "mae_median", "bias", "bias_median", "rmse", "skil", "relative_bias_5", "Brier_95", "Brier_99","Brier_995", 
         for batch, (pr, hr, _, access_date, awap_date, _) in enumerate(test_data):
             with torch.no_grad():
                 sr_np = pr.cpu().numpy()
@@ -531,9 +461,9 @@ def main(year, days):
         
         for key in results:
             # 计算每个度量的平均值
-            mean_value = np.mean(results[key], axis=0)
-            
-            
+            results[key] = np.stack(results[key], axis=0)
+            results[key] = calculate_alpha_index(results[key])
+            mean_value = results[key]
             folder_path = f"{base_path}{key}/{model_name}/{year}/"
             print("folder_path:",folder_path)
             if not os.path.exists(folder_path):
@@ -544,7 +474,7 @@ def main(year, days):
             np.save(os.path.join(folder_path, file_name), mean_value)
             print(f"save {key}")
                                 
-years = [2007]
+years = [2007,2006, 2018]
 
 if __name__ == '__main__':
     for year in years:

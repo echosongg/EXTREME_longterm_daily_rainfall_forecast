@@ -6,9 +6,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap, BoundaryNorm
 from mpl_toolkits.basemap import Basemap, maskoceans
 import csv
-#model_name = "model_G_i000007_20240910-042620"
-#model_name = "model_G_i000008_20240916-171624_with_huber"
-model_name = "model_G_i000008_20240824-212330_with_huber"
+model_name = "model_G_i000007_20240910-042620"
 # 评估函数
 def evaluate(year, lead, draw=False, window=1):
 
@@ -65,19 +63,21 @@ def evaluate(year, lead, draw=False, window=1):
         base_path = "/scratch/iu60/xs5813/cli_metric_result/new_crps/save/climatology/mean_climatology"
         metrics = [
             "climat_lead_time_","mae_median_climat_lead_time_","mae_climat_lead_time_","bias_climat_lead_time_", "bias_median_climat_lead_time_", "relative_bias_5_climat_lead_time_",
-            "prob95_climat_lead_time_", "prob99_climat_lead_time_", "prob995_climat_lead_time_"#, "alpha_climat_lead_time_"
+            "prob95_climat_lead_time_", "prob99_climat_lead_time_", "prob995_climat_lead_time_","alpha_climat_lead_time_","alpha_no_plus_climat_lead_time_"#, "alpha_climat_lead_time_"
         ]
         data = []
         for metric in metrics:
             path = f"{base_path}/{year}/window{window}/{metric}{time}.npy"
+            print("climatology path ", path)
             #print("climatology",path)
             metric_data = np.load(path, allow_pickle=True).astype("float32")
             metric_data = np.ma.masked_array(metric_data, mask=qm_mask)
+            print(np.mean(metric_data))
             data.append(np.nanmean(metric_data))
         return data
 
     climat_data = [[time, *process_climatology_data(time)] for time in range(lead)]
-    write_csv(climat_file_csv, ["lead time", "crps", "mae_median","mae_mean","bias", "bias_median","relative_bias", "Brier95", "Brier99","Brier995"], climat_data)
+    write_csv(climat_file_csv, ["lead time", "crps", "mae_median","mae_mean","bias", "bias_median","relative_bias", "Brier95", "Brier99","Brier995", "alpha_plus", "alpha"], climat_data)
 
     def process_qm_data(time):
         #qm_base = "/scratch/iu60/hs2870/score/save/"
@@ -95,6 +95,7 @@ def evaluate(year, lead, draw=False, window=1):
             f"{qm_base}Brier99/QM/{year}/lead_time{time}_whole.npy",
             f"{qm_base}Brier995/QM/{year}/lead_time{time}_whole.npy",
             f"{qm_base}alpha/QM/{year}/lead_time{time}_whole.npy",
+            f"{qm_base}alpha_no_plus/QM/{year}/lead_time{time}_whole.npy",
             #f"{qm_base}heavy30/QM/{year}/lead_time{time}_whole.npy",
             #f"{qm_base}Brier999/QM/{year}/lead_time{time}_whole.npy",
         ]
@@ -117,7 +118,7 @@ def evaluate(year, lead, draw=False, window=1):
         return data
 
     qm_data = [[time, *process_qm_data(time)] for time in range(lead)]
-    write_csv(QM_file_csv, ["lead time", "crps_ss", "crps","mae_median","mae_mean","bias","bias_median", "relative_bias_5","Brier95", "Brier99","Brier995","alpha"], qm_data)
+    write_csv(QM_file_csv, ["lead time", "crps_ss", "crps","mae_median","mae_mean","bias","bias_median", "relative_bias_5","Brier95", "Brier99","Brier995","alpha_plus", "alpha"], qm_data)
 
     def process_model_data(time):
         model_base_path = f"/scratch/iu60/xs5813/metric_results/"
@@ -128,17 +129,18 @@ def evaluate(year, lead, draw=False, window=1):
             f"{model_base_path}bias/{model_name}/{year}/lead_time{time}_whole.npy",
             #f"{model_base_path}bias_median/{model_name}/{year}/lead_time{time}_whole.npy",
             f"{model_base_path}relative_bias_5/{model_name}/{year}/lead_time{time}_whole.npy",
-            # f"{model_base_path}Brier_95/{model_name}/{year}/lead_time{time}_whole.npy",
-            # f"{model_base_path}Brier_99/{model_name}/{year}/lead_time{time}_whole.npy",
-            # f"{model_base_path}Brier_995/{model_name}/{year}/lead_time{time}_whole.npy",
+            f"{model_base_path}Brier_95/{model_name}/{year}/lead_time{time}_whole.npy",
+            f"{model_base_path}Brier_99/{model_name}/{year}/lead_time{time}_whole.npy",
+            f"{model_base_path}Brier_995/{model_name}/{year}/lead_time{time}_whole.npy",
             #f"{model_base_path}Brier_0_dis/{model_name}/{year}/lead_time{time}_whole.npy",
-            f"{model_base_path}Brier_95_dis/{model_name}/{year}/lead_time{time}_whole.npy",
-            f"{model_base_path}Brier_99_dis/{model_name}/{year}/lead_time{time}_whole.npy",
-            f"{model_base_path}Brier_995_dis/{model_name}/{year}/lead_time{time}_whole.npy",
-            # #distribution
-            f"{model_base_path}skil_dis/{model_name}/{year}/lead_time{time}_whole.npy",
+            # f"{model_base_path}Brier_95_dis/{model_name}/{year}/lead_time{time}_whole.npy",
+            # f"{model_base_path}Brier_99_dis/{model_name}/{year}/lead_time{time}_whole.npy",
+            # f"{model_base_path}Brier_995_dis/{model_name}/{year}/lead_time{time}_whole.npy",
+            # # #distribution
+            # f"{model_base_path}skil_dis/{model_name}/{year}/lead_time{time}_whole.npy",
             #f"{model_base_path}mae_median_dis/{model_name}/{year}/lead_time{time}_whole.npy",
-            #f"{model_base_path}alpha/{model_name}/{year}/lead_time{time}_whole.npy",
+            f"{model_base_path}alpha_plus/{model_name}/{year}/lead_time{time}_whole.npy",
+            f"{model_base_path}alpha/{model_name}/{year}/lead_time{time}_whole.npy",
 #"lead time", "crpsss", "crps", "mae_median","mae_mean","bias","bias_median","relative_bias","relative_bias_2","relative_bias_4","relative_bias_5", "Brier0", "Brier95", "Brier99","Brier995", "Brier95dis", "Brier99dis","Brier995dis"
         ]
         data = []
@@ -169,10 +171,10 @@ def evaluate(year, lead, draw=False, window=1):
         return data
 
     model_data = [[time, *process_model_data(time)] for time in range(lead)]
-    write_csv(model_file_csv, ["lead time", "crpsss", "crps", "mae_median","mae_mean","bias","relative_bias_5", "Brier95", "Brier99","Brier995","skil_dis"] ,model_data)
+    write_csv(model_file_csv, ["lead time", "crpsss", "crps", "mae_median","mae_mean","bias","relative_bias_5", "Brier95", "Brier99","Brier995","alpha_plus","alpha"] ,model_data)
 
 # 运行评估函数
-years = ['2006','2007','2018']
+years = ['2007','2006', '2018']
 for year in years:
     evaluate(year, 42, window=1, draw=False)
 print(model_name,years, "done")

@@ -10,9 +10,30 @@ from datetime import timedelta, date, datetime
 import numpy as np
 import os
 import time
+import logging
 import properscoring as ps
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def calculate_pit_values(ensemble_forecasts, observations, epsilon=1e-6):
+# 创建./save目录，如果不存在的话
+log_dir = './save'
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir)
+
+# 定义日志文件路径
+log_file = os.path.join(log_dir, 'disttibution.log')
+
+# 配置logging模块
+logging.basicConfig(
+    level=logging.DEBUG,  # 设置日志记录级别（DEBUG, INFO, WARNING, ERROR, CRITICAL）
+    format='%(asctime)s - %(levelname)s - %(message)s',  # 日志输出格式
+    handlers=[
+        logging.FileHandler(log_file),  # 将日志输出到文件
+        logging.StreamHandler()  # 同时输出到控制台
+    ]
+)
+
+#def calculate_pit_values(ensemble_forecasts, observations, epsilon=1e-6):
+def calculate_pit_values(p_pred, alpha_pred, beta_pred, observations, history, shave_border=0, num_values=10, epsilon = 1e-6):
     """
     Calculate PIT (Probability Integral Transform) values for 3D ensemble forecasts.
 
@@ -27,22 +48,47 @@ def calculate_pit_values(ensemble_forecasts, observations, epsilon=1e-6):
     array: A 2D array of PIT values with the same shape as observations.
     """
     # Ensure inputs are numpy arrays
-    ensemble_forecasts = np.array(ensemble_forecasts)
-    observations = np.array(observations)
+    p_pred = torch.tensor(p_pred, dtype=torch.float32, device=device)
+    alpha_pred = torch.tensor(alpha_pred, dtype=torch.float32, device=device)
+    beta_pred = torch.tensor(beta_pred, dtype=torch.float32, device=device)
+    alpha_pred = torch.clamp(alpha_pred, min=1e-6)
+    beta_pred = torch.clamp(beta_pred, min=1e-6)
+    observations = torch.tensor(observations, dtype=torch.float32, device=device)
+    history = torch.tensor(history, dtype=torch.float32, device=device)
+    ensemble_forecasts = torch.zeros((num_values, *p_pred.shape), dtype=torch.float32, device=device)
+    # Generate 10 predicted values based on Gamma distribution
+    for i in range(num_values):
+        is_rain = torch.bernoulli(p_pred)
+        rain_amount = torch.distributions.gamma.Gamma(alpha_pred, 1/beta_pred).sample()
+        ensemble_forecasts[i] = is_rain * rain_amount  # If no rain, rain amount is 0
+    
+    # Remove border pixels
+    ensemble_forecasts = torch.expm1(ensemble_forecasts * 7)
+    ensemble_forecasts = ensemble_forecasts.view(-1, *observations.shape)
+    ensemble_forecasts = torch.minimum(ensemble_forecasts, 1.1 * history) # Limit values to historical max
+    ensemble_forecasts = ensemble_forecasts.cpu().numpy()
+    observations = observations.cpu().numpy()
+    print("ensemble_forecasts", ensemble_forecasts.shape)
+    print("observations", observations.shape)
+
 
     # Check input shapes
     if ensemble_forecasts.ndim != 3 or observations.ndim != 2:
         raise ValueError(
             "Input dimensions are incorrect. ensemble_forecasts should be 3D and observations should be 2D.")
-
+    #ensemble_forecasts (90, 413, 267)
+    #observations (413, 267)
+    ensemble_forecasts = np.transpose(ensemble_forecasts, (1, 2, 0))
     if ensemble_forecasts.shape[:2] != observations.shape:
         raise ValueError("Horizontal and vertical dimensions of ensemble_forecasts and observations must match.")
 
     # Count the total number of ensemble members
-    n_ensemble = ensemble_forecasts.shape[-1] + 1
+    n_ensemble = ensemble_forecasts.shape[-1]
+    print("n_ensenmble: ", n_ensemble)
 
     # Sort each ensemble forecast
     sorted_forecasts = np.sort(ensemble_forecasts, axis=-1)
+
 
     # Calculate left and right ranks
     left_ranks = np.zeros_like(observations, dtype=int)
@@ -65,10 +111,92 @@ def calculate_pit_values(ensemble_forecasts, observations, epsilon=1e-6):
 
     # Apply the tiny perturbation to avoid extreme values of 0 and 1
     pit_values = np.clip(pit_values, epsilon, 1 - epsilon)
-    print("pit shape",pit_values.shape)
+    print("pit value shape:",pit_values.shape)
 
     return pit_values
 
+#def calculate_pit_values(ensemble_forecasts, observations, epsilon=1e-6):
+def calculate_pit_values_plus(p_pred, alpha_pred, beta_pred, observations, history, shave_border=0, num_values=10, epsilon = 1e-6):
+    """
+    Calculate PIT (Probability Integral Transform) values for 3D ensemble forecasts.
+
+    Parameters:
+    ensemble_forecasts (array-like): A 3D array where dimensions represent:
+                                     (Horizontal axis, Vertical axis, Ensemble member)
+    observations (array-like): A 2D array of corresponding observed values with dimensions:
+                               (Horizontal axis, Vertical axis)
+    epsilon (float): A tiny value to adjust PIT away from extremes (default: 1e-6)
+
+    Returns:
+    array: A 2D array of PIT values with the same shape as observations.
+    """
+    # Ensure inputs are numpy arrays
+    p_pred = torch.tensor(p_pred, dtype=torch.float32, device=device)
+    alpha_pred = torch.tensor(alpha_pred, dtype=torch.float32, device=device)
+    beta_pred = torch.tensor(beta_pred, dtype=torch.float32, device=device)
+    alpha_pred = torch.clamp(alpha_pred, min=1e-6)
+    beta_pred = torch.clamp(beta_pred, min=1e-6)
+    observations = torch.tensor(observations, dtype=torch.float32, device=device)
+    history = torch.tensor(history, dtype=torch.float32, device=device)
+    ensemble_forecasts = torch.zeros((num_values, *p_pred.shape), dtype=torch.float32, device=device)
+    # Generate 10 predicted values based on Gamma distribution
+    for i in range(num_values):
+        is_rain = torch.bernoulli(p_pred)
+        rain_amount = torch.distributions.gamma.Gamma(alpha_pred, 1/beta_pred).sample()
+        ensemble_forecasts[i] = is_rain * rain_amount  # If no rain, rain amount is 0
+    
+    # Remove border pixels
+    ensemble_forecasts = torch.expm1(ensemble_forecasts * 7)
+    ensemble_forecasts = ensemble_forecasts.view(-1, *observations.shape)
+    ensemble_forecasts = torch.minimum(ensemble_forecasts, 1.1 * history) # Limit values to historical max
+    ensemble_forecasts = ensemble_forecasts.cpu().numpy()
+    observations = observations.cpu().numpy()
+    print("ensemble_forecasts", ensemble_forecasts.shape)
+    print("observations", observations.shape)
+
+
+    # Check input shapes
+    if ensemble_forecasts.ndim != 3 or observations.ndim != 2:
+        raise ValueError(
+            "Input dimensions are incorrect. ensemble_forecasts should be 3D and observations should be 2D.")
+    #ensemble_forecasts (90, 413, 267)
+    #observations (413, 267)
+    ensemble_forecasts = np.transpose(ensemble_forecasts, (1, 2, 0))
+    if ensemble_forecasts.shape[:2] != observations.shape:
+        raise ValueError("Horizontal and vertical dimensions of ensemble_forecasts and observations must match.")
+
+    # Count the total number of ensemble members
+    n_ensemble = ensemble_forecasts.shape[-1]+1
+    print("n_ensenmble: ", n_ensemble)
+
+    # Sort each ensemble forecast
+    sorted_forecasts = np.sort(ensemble_forecasts, axis=-1)
+
+
+    # Calculate left and right ranks
+    left_ranks = np.zeros_like(observations, dtype=int)
+    right_ranks = np.zeros_like(observations, dtype=int)
+
+    for i in range(observations.shape[0]):
+        for j in range(observations.shape[1]):
+            left_ranks[i, j] = np.searchsorted(sorted_forecasts[i, j], observations[i, j], side='left')
+            right_ranks[i, j] = np.searchsorted(sorted_forecasts[i, j], observations[i, j], side='right')
+
+    # Generate random values for cases where left_rank != right_rank
+    random_values = np.random.random(observations.shape)
+
+    # Calculate PIT values
+    pit_values = np.where(
+        left_ranks != right_ranks,
+        (left_ranks + random_values * (right_ranks - left_ranks)) / n_ensemble,
+        left_ranks / n_ensemble
+    )
+
+    # Apply the tiny perturbation to avoid extreme values of 0 and 1
+    pit_values = np.clip(pit_values, epsilon, 1 - epsilon)
+    print("pit value shape:",pit_values.shape)
+
+    return pit_values
 
 def calculate_alpha_index(pit_values):
     """
@@ -100,110 +228,11 @@ def calculate_alpha_index(pit_values):
 
     # Calculate the alpha index for each spatial point
     alpha_values = 1 - (2 / date_size) * sum_absolute_differences
-    
-def mae_mean(ens, hr):
-    '''
-    ens:(ensemble,H,W)
-    hr: (H,W)
-    '''
-    return np.abs((ens.mean(axis=0) - hr))
 
+    print("alpha_values",alpha_values.shape)
 
-def mae_median(ens, hr):
-    '''
-    ens:(ensemble,H,W)
-    hr: (H,W)
-    '''
-    return np.abs((np.median(ens, axis=0) - hr))
+    return alpha_values
 
-
-def bias(ens, hr):
-    '''
-    ens:(ensemble,H,W)
-    hr: (H,W)
-    '''
-    return (ens - hr).sum(axis=0) / ens.shape[0]
-
-
-def bias_median(ens, hr):
-    '''
-    ens:(ensemble,H,W)
-    hr: (H,W)
-    '''
-    return np.median(ens, axis=0) - hr
-
-def bias_relative(ens, hr, constant=1):
-    '''
-    ens:(ensemble,H,W)
-    hr: (H,W)
-    constant: relative constant
-    '''
-    return (np.mean(ens, axis=0) - hr) / (constant + hr)
-
-
-def bias_relative_median(ens, hr, constant=1):
-    '''
-    ens:(ensemble,H,W)
-    hr: (H,W)
-    constant: relative constant
-    '''
-    return (np.median(ens, axis=0) - hr) / (constant + hr)
-
-def calAWAPprob(AWAP_data, percentile):
-    ''' 
-    input: AWAP_data is  413 * 267
-            percentile size is 413 * 267
-    return: A probability matrix which size is 413 * 267 indicating the probability of the values in ensemble forecast 
-    is greater than the value in the same pixel in percentile matrix
-
-    '''
-
-    
-    return (AWAP_data > percentile) * 1
-
-
-def calforecastprob(forecast, percentile):
-    ''' 
-    input: forecast is  9 * 413 * 267
-            percentile size is 413 * 267
-    return: A probability matrix which size is 413 * 267 indicating the probability of the values in ensemble forecast 
-    is greater than the value in the same pixel in percentile matrix
-
-    '''
-    
-    prob_matrix = (forecast > percentile)
-    return np.mean(prob_matrix, axis = 0)
-
-def calAWAPdryprob(AWAP_data, percentile):
-
-    return (AWAP_data >= percentile) * 1
-
-def calforecastdryprob(forecast, percentile):
-
-    prob_matrix = (forecast >= percentile)
-    return np.mean(prob_matrix, axis = 0)   
-    
-# def relative_bias(ens, hr):
-
-#     return (ens - hr).sum(axis=0) / ens.shape[0] / hr
-
-def rmse(ens, hr):
-    '''
-    ens:(ensemble,H,W)
-    hr: (H,W)
-    '''
-    return np.sqrt(((ens - hr) ** 2).sum(axis=(0)) / ens.shape[0])
-
-def mae(ens, hr):
-    '''
-    ens:(ensemble,H,W)
-    hr: (H,W)
-    '''
-    return np.abs((ens - hr)).sum(axis=0) / ens.shape[0]
-
-# ===========================================================
-# Training settings
-# ===========================================================
 
 
 class ACCESS_AWAP_cali(Dataset):
@@ -218,8 +247,6 @@ class ACCESS_AWAP_cali(Dataset):
         # '/g/data/rr8/OBS/AWAP_ongoing/v0.6/grid_05/daily/precip/'
         self.file_AWAP_dir = args.file_AWAP_dir
         self.file_ACCESS_dir = args.file_ACCESS_dir
-        print(self.file_AWAP_dir)
-        print(self.file_ACCESS_dir)
         self.args = args
 
         self.lr_transform = lr_transform
@@ -244,7 +271,6 @@ class ACCESS_AWAP_cali(Dataset):
         if not os.path.exists(self.file_ACCESS_dir):
             print(self.file_ACCESS_dir)
             print("no file or no permission")
-        print(self.filename_list)
         #en, cali_date, date_for_AWAP, time_leading = self.filename_list[0]
         if shuffle:
             random.shuffle(self.filename_list)
@@ -284,7 +310,7 @@ class ACCESS_AWAP_cali(Dataset):
 
                 for en in self.ensemble:
                     access_path = rootdir + en + "/pr/" + date.strftime("%Y") + "/" + date.strftime("%Y-%m-%d") + ".nc"
-                    #                   print(access_path)
+                    #access_path = rootdir + en + "/pr/"  + date.strftime("%Y-%m-%d") + ".nc"
                     if os.path.exists(access_path):
 
                         if date == self.end_date and i == 1:
@@ -313,9 +339,8 @@ class ACCESS_AWAP_cali(Dataset):
         # read_data filemame[idx]
         #print("self.filename_list",self.filename_list)
         en, access_date, awap_date, time_leading = self.filename_list[idx]
-
         lr = dpt.read_access_data_calibration(
-            self.file_ACCESS_dir, en, access_date, time_leading, self.year, "pr")
+            self.file_ACCESS_dir, en, access_date, time_leading, self.year, ["p","alpha", "beta"])
         #lr_log = dpt.read_access_data_calibrataion_log(
             #self.file_ACCESS_dir, en, access_date, time_leading, year, "pr")
         label, AWAP_date = dpt.read_awap_data_fc(self.file_AWAP_dir, awap_date)
@@ -326,21 +351,18 @@ class ACCESS_AWAP_cali(Dataset):
 
 
 def write_log(log, args):
+    print(log)
     if not os.path.exists("./save/" + args.train_name + "/"):
         os.mkdir("./save/" + args.train_name + "/")
-    my_log_file = open("./save/" + args.train_name + '/train.txt', 'a')
+    my_log_file = open("./save/" + args.train_name + '/distribution.txt', 'a')
     my_log_file.write(log + '\n')
     my_log_file.close()
     return
 
-
 def main(year, days):
 
-    model_name = 'model_G_i000007_20240910-042620'
-    model_name = 'model_G_i000006_20240610-011512'
-    #model_name = 'model_G_i000008_20240824-212330_with_huber'
+    model_name = 'model_G_i000008_20240824-212330_with_huber'
     version = "TestRefactored"
-    #30 year
     Brier_startyear = 1976
     Brier_endyear = 2005
     parser = argparse.ArgumentParser(description='PyTorch Super Res Example')
@@ -409,7 +431,6 @@ def main(year, days):
                         help='FP precision for test (single | half)')
 
     args = parser.parse_args()
-
     sys = platform.system()
     args.dem = False
     args.train_name = "pr_DESRGAN"
@@ -454,42 +475,12 @@ def main(year, days):
 
     args.test_start_time = datetime(year, 1, 1)
     args.test_end_time = datetime(year, 12, 31)
-
-    write_log("start", args)
-    percentile_95 = dpt.AWAPcalpercentile(Brier_startyear, Brier_endyear, 95)
-    print("percentile 95 is : ", percentile_95)
-    # print("type of percentile95", type(percentile_95))
-    # print("The size of percentile95 ", len(percentile_95))
-    # print("The size of percentile95[0] ", len(percentile_95[0]))
-    # print('Maximum  value of percentile 95 ', percentile_95.max())
-    percentile_99 = dpt.AWAPcalpercentile(Brier_startyear, Brier_endyear, 99)
-    print("percentile 99 is : ", percentile_99)
-    percentile_995 = dpt.AWAPcalpercentile(Brier_startyear, Brier_endyear, 99.5)
-    pit = calculate_pit_values(sr, hr)
-
+    history = dpt.AWAPcalpercentile(Brier_startyear, Brier_endyear, 100)
     def compute_metrics(sr, hr, args):
-        print("hr.shape",hr.shape)
-        print("sr.shape",np.transpose(sr, (1, 2, 0)).shape)
         metrics = {
-            # "mae": mae(sr, hr),
-            # "mae_mean": mae_mean(sr, hr),
-            # "mae_median": mae_median(sr, hr),
-            # "bias": bias(sr, hr),
-            # "bias_median": bias_median(sr, hr),
-            # "rmse": rmse(sr, hr),
-            # "skil": ps.crps_ensemble(hr, np.transpose(sr, (1, 2, 0))),
-            # "relative_bias_5": bias_relative(sr, hr, constant=5),
-            # #"Brier_0": brier_score(calAWAPdryprob(hr, 0.1), calforecastdryprob(sr, 0.1)),
-            # "Brier_95": brier_score(calAWAPprob(hr, percentile_95), calforecastprob(sr, percentile_95)),
-            # "Brier_99": brier_score(calAWAPprob(hr, percentile_99), calforecastprob(sr, percentile_99)),
-            # "Brier_995": brier_score(calAWAPprob(hr, percentile_995), calforecastprob(sr, percentile_995)),
-            "alpha": calculate_alpha_index(pit)
-            "alpha2": 
+            "alpha_dis_plus": calculate_pit_values_plus(np.squeeze(sr[:, 0, :, :]), np.squeeze(sr[:, 1, :, :]), np.squeeze(sr[:, 2, :, :]), hr, history)
         }
         return metrics
-
-    def brier_score(prob_AWAP, prob_forecast):
-        return (prob_AWAP - prob_forecast) ** 2
 
     for lead in range(0, days):
         args.leading_time_we_use = lead
@@ -499,53 +490,43 @@ def main(year, days):
         print("data_set length:", len(data_set))
         test_data = DataLoader(data_set, batch_size=18, shuffle=False, num_workers=args.n_threads, drop_last=True)
 
-        results = {metric: [] for metric in ["alpha"]}#"mae", "mae_mean", "mae_median", "bias", "bias_median", "rmse", "skil", "relative_bias_5", "Brier_95", "Brier_99","Brier_995", 
+        results = {metric: [] for metric in ["alpha_dis_plus"]} #"skil_dis", "mae_median_dis","Brier_95_dis", "Brier_99_dis","Brier_995_dis"，
+
         for batch, (pr, hr, _, access_date, awap_date, _) in enumerate(test_data):
             with torch.no_grad():
                 sr_np = pr.cpu().numpy()
+                print("sr_np shape",sr_np.shape)
                 hr_np = hr.cpu().numpy()
-
-                print("sr:", sr_np.shape)
-                print("hr:", hr_np.shape)
-                print("ACCESS_date", access_date)
-                print("AWAP_date", awap_date)
 
                 for i in range(args.batch_size // args.ensemble):
                     a = np.squeeze(sr_np[i * args.ensemble:(i + 1) * args.ensemble])
                     b = np.squeeze(hr_np[i * args.ensemble])
                     metrics = compute_metrics(a, b, args)
-                    # print("Values of a:", a)
-                    # print("Shape of a:", a.shape)
-                    # print("Max value of a:", np.max(a))
-                    # print("Min value of a:", np.min(a))
+                    print("hr", hr.shape)
 
-                    # print("Values of b:", b)
-                    # print("Shape of b:", b.shape)
-                    # print("Max value of b:", np.max(b))
-                    # print("Min value of b:", np.min(b))
                     for key, value in metrics.items():
                         results[key].append(value)
-
         
         base_path = "/scratch/iu60/xs5813/metric_results/"
         
         for key in results:
-            # 计算每个度量的平均值
-            mean_value = np.mean(results[key], axis=0)
-            
-            
-            folder_path = f"{base_path}{key}/{model_name}/{year}/"
-            print("folder_path:",folder_path)
-            if not os.path.exists(folder_path):
-                os.makedirs(folder_path, exist_ok=True)
-            file_name = f"lead_time{lead}_whole.npy"
-            
-            # 保存计算得到的平均值到.npy文件
-            np.save(os.path.join(folder_path, file_name), mean_value)
-            print(f"save {key}")
-                                
-years = [2007]
+            if results[key]:  # 确保列表非空
+                results[key] = np.stack(results[key], axis=0)
+                results[key] = calculate_alpha_index(results[key])
+                mean_value = results[key]
+                #print(f"Average of {key}: {np.mean(mean_value)}")
 
+                folder_path = f"{base_path}{key}/{model_name}/{year}/"
+                if not os.path.exists(folder_path):
+                    os.makedirs(folder_path, exist_ok=True)
+                file_name = f"lead_time{lead}_whole.npy"
+                np.save(os.path.join(folder_path, file_name), mean_value)
+            else:
+                print(f"No results for {key}")
+        
 if __name__ == '__main__':
+    years = [2006, 2018]
+    days = 42  # Assuming days remain constant for each year.
     for year in years:
-        main(year=year, days=42)
+        main(year, days)
+        print(f'EXTRME {year} done')
