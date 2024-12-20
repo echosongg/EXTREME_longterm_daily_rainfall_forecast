@@ -39,8 +39,6 @@ prcp_colours = [
                    '#8B0000']
 
 prcp_colormap = matplotlib.colors.ListedColormap(prcp_colours)
-lon_range = (142.000,  152.3)
-lat_range = (-31.95, -23.4)
 
 
 ##def draw_aus_pr(var,lat,lon,domain = [138, 156.275, -29, -9.975], mode="pr" , titles_on = True,\
