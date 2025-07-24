@@ -82,15 +82,6 @@ python model_built/test_pab.py
 
 ### **Rainfall Generation Equation**
 
-```python
-def generate_sample(bg_output):
-    p_pred = torch.sigmoid(bg_output[:, 0, :, :]).unsqueeze(1)  # rain probability
-    p_pred = (p_pred > 0.5).float()
-    alpha_pred = torch.exp(bg_output[:, 1, :, :]).unsqueeze(1)  # shape parameter
-    beta_pred = torch.exp(bg_output[:, 2, :, :]).unsqueeze(1)   # scale parameter
-    return p_pred * (alpha_pred * beta_pred)
-```
-
 Mathematically:
 
 ```math
