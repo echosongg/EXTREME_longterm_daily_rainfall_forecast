@@ -1,10 +1,61 @@
-# Rainfall Prediction Models - PRGAN, DESRGAN, Climatology, and QM
+# 🌧️ Rainfall Prediction Project
 
-This repository contains implementations for various rainfall prediction approaches including PRGAN, DESRGAN, Climatology, and Quantile Mapping (QM). The models predict rainfall probability and distribution-based metrics over a sequence of timesteps.
+This repository contains a full pipeline for rainfall prediction using deep learning models and statistical baselines. The workflow is divided into two main modules:
+
+1. **Preprocessing**
+2. **Model Training, Inference, and Evaluation**
 
 ---
 
-## 1. PRGAN (My Model)
+## 📦 Module 1: Preprocessing
+
+This module prepares both observation and model data as input for the learning and evaluation phases.
+
+### **1. AGCD Ground Truth (5km resolution)**
+
+Run the following script to process the AGCD rainfall ground truth data:
+
+```bash
+python preprocessing/Data_process_code/agcd_mask_processing.py
+```
+
+This step masks and aligns the high-resolution (5km) AGCD dataset for supervised training and evaluation.
+
+---
+
+### **2. ACCESS-S2 Forecast Data (60km → Interpolated to 40km)**
+
+Run the following script to process the ACCESS-S2 model forecast data:
+
+```bash
+python preprocessing/Data_process_code/ACCESS_e01.py
+```
+
+This script:
+- Reads original ACCESS-S2 data at 60km resolution
+- Interpolates the data to 40km resolution for compatibility with the learning models
+
+---
+
+### **3. Quantile Mapping (QM) Preprocessing**
+
+Crop and prepare the quantile mapping input data by running:
+
+```bash
+python preprocessing/QM_pre/QM_data_crop_e1.py
+```
+
+This prepares inputs for bias correction using the QM method in the evaluation phase.
+
+---
+
+## 🚀 Module 2: Models and Evaluation
+
+This module runs deep learning models, baseline evaluations, and metrics computation.
+
+---
+
+## 🌧️ 1. PRGAN (Probabilistic Rainfall GAN)
 
 ### **Step-by-step Usage**
 
@@ -13,14 +64,10 @@ This repository contains implementations for various rainfall prediction approac
 python model_built/train.py
 ```
 
-This will save a pretrained model in the output directory.
-
 #### 2. Fine-tune the model using:
 ```bash
 python model_built/pretrain.py
 ```
-
-Make sure the pretrained model is correctly loaded inside `pretrain.py`.
 
 #### 3. Predict rainfall probability and distribution parameters:
 ```bash
@@ -35,7 +82,16 @@ python model_built/test_pab.py
 
 ### **Rainfall Generation Equation**
 
-The rainfall value \( \hat{R} \) is computed as:
+```python
+def generate_sample(bg_output):
+    p_pred = torch.sigmoid(bg_output[:, 0, :, :]).unsqueeze(1)  # rain probability
+    p_pred = (p_pred > 0.5).float()
+    alpha_pred = torch.exp(bg_output[:, 1, :, :]).unsqueeze(1)  # shape parameter
+    beta_pred = torch.exp(bg_output[:, 2, :, :]).unsqueeze(1)   # scale parameter
+    return p_pred * (alpha_pred * beta_pred)
+```
+
+Mathematically:
 
 ```math
 \hat{R} = \mathbf{1}_{\{p > 0.5\}} \cdot (\alpha \cdot \beta)
@@ -43,13 +99,8 @@ The rainfall value \( \hat{R} \) is computed as:
 
 #### 4. Evaluate distribution-based metrics:
 ```bash
-python model_built/eval_distribution.py
+python eval_distribution.py
 ```
-
-This will generate rainfall forecasts for 41 lead times and compute:
-- Brier score at thresholds: 0.95, 0.99, 0.995
-- CRPS (Continuous Ranked Probability Score)
-- MAE (Median of 9 esemble members)
 
 #### 5. Evaluate relative bias:
 ```bash
@@ -123,11 +174,16 @@ python crps_calculation_code/evalQM.py
 
 ---
 
-
 ## 📁 Directory Structure
 
 ```
 .
+├── preprocessing/
+│   ├── Data_process_code/
+│   │   ├── agcd_mask_processing.py
+│   │   └── ACCESS_e01.py
+│   └── QM_pre/
+│       └── QM_data_crop_e1.py
 ├── model_built/
 │   ├── train.py
 │   ├── pretrain.py
@@ -139,7 +195,7 @@ python crps_calculation_code/evalQM.py
 │   ├── clim_table_csv.py
 │   ├── climatology.py
 │   └── evalQM.py
-
+├── train.py  # for DESRGAN
 ```
 
 ---
