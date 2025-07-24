@@ -1,9 +1,10 @@
-# 🌧️ 
+# 🌧️ Rainfall Prediction Project
 
-This repository contains a full pipeline for rainfall prediction using deep learning models and statistical baselines. The workflow is divided into two main modules:
+This repository contains a full pipeline for rainfall prediction using deep learning models and statistical baselines. The workflow is divided into three main modules:
 
 1. **Preprocessing**
 2. **Model Training, Inference, and Evaluation**
+3. **Results Output and Visualization**
 
 ---
 
@@ -45,8 +46,6 @@ Crop and prepare the quantile mapping input data by running:
 python preprocessing/QM_pre/QM_data_crop_e1.py
 ```
 
-This prepares inputs for bias correction using the QM method in the evaluation phase.
-
 ---
 
 ## 🚀 Module 2: Models and Evaluation
@@ -81,6 +80,15 @@ python model_built/test_pab.py
 - When `generate = True`: generates rainfall values using the following formula:
 
 ### **Rainfall Generation Equation**
+
+```python
+def generate_sample(bg_output):
+    p_pred = torch.sigmoid(bg_output[:, 0, :, :]).unsqueeze(1)  # rain probability
+    p_pred = (p_pred > 0.5).float()
+    alpha_pred = torch.exp(bg_output[:, 1, :, :]).unsqueeze(1)  # shape parameter
+    beta_pred = torch.exp(bg_output[:, 2, :, :]).unsqueeze(1)   # scale parameter
+    return p_pred * (alpha_pred * beta_pred)
+```
 
 Mathematically:
 
@@ -154,6 +162,44 @@ python crps_calculation_code/evalQM.py
 
 ---
 
+## 🗂️ Module 3: Results Output and Visualization
+
+This module exports evaluation results and visualizes spatial metrics across the region and time.
+
+---
+
+### **1. Output CSV of Averaged Results (41 Lead Times)**
+
+Run the following script to compute and save average metrics over all lead times:
+
+```bash
+python crps_calculation_code/crps_ss.py
+```
+
+This will generate CSV tables with average Brier scores, CRPS, MAE, etc.
+
+---
+
+### **2. Visualize Spatial Metric Differences**
+
+#### a. Brier Score Difference Maps
+
+```bash
+python visual/diff_brier.py
+```
+
+This creates spatial visualizations showing Brier score differences between methods or lead times.
+
+#### b. CRPS Difference Maps
+
+```bash
+python visual/diff_crps.py
+```
+
+This creates interpolated spatial maps for CRPS differences.
+
+---
+
 ## 📊 Metrics Explanation
 
 | Metric       | Description                                                                 |
@@ -162,6 +208,17 @@ python crps_calculation_code/evalQM.py
 | **CRPS**     | Compares the full distribution forecast with observations                   |
 | **MAE**      | Median Absolute Error of the rainfall predictions                           |
 | **Rel. Bias**| Relative bias of the predicted rainfall                                     |
+
+---
+
+## 🔧 Requirements
+
+Please ensure the following dependencies are installed:
+- Python >= 3.7
+- PyTorch >= 1.8
+- NumPy, Pandas, Matplotlib
+- xarray, netCDF4, Basemap (for spatial plotting)
+- Other requirements in `requirements.txt` (if present)
 
 ---
 
@@ -180,15 +237,19 @@ python crps_calculation_code/evalQM.py
 │   ├── pretrain.py
 │   ├── test_pab.py
 │   ├── test.py
-│   ├── eval_distribution.py
 │   └── eval_PEFGAN.py
 ├── crps_calculation_code/
 │   ├── clim_table_csv.py
 │   ├── climatology.py
-│   └── evalQM.py
+│   ├── evalQM.py
+│   └── crps_ss.py
+├── visual/
+│   ├── diff_brier.py
+│   └── diff_crps.py
+├── eval_distribution.py
 ├── train.py  # for DESRGAN
 ```
 
 ---
 
-For any issues or bugs, please raise an issue or contact the authors. Happy forecasting! 
+For any issues or bugs, please raise an issue or contact the authors. Happy forecasting! 🌧️📈
