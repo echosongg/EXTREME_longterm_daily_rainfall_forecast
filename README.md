@@ -1,4 +1,4 @@
-# 🌧️ Rainfall Prediction Project
+# 🌧️ 
 
 This repository contains a full pipeline for rainfall prediction using deep learning models and statistical baselines. The workflow is divided into two main modules:
 
