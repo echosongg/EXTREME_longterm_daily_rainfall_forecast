@@ -1,62 +1,55 @@
-# 🌧️ Rainfall Prediction Project
+# 🌧️
 
 This repository contains a full pipeline for rainfall prediction using deep learning models and statistical baselines. The workflow is divided into three main modules:
 
-1. **Preprocessing**
+1. **Preprocessing & Metric Calculation**
 2. **Model Training, Inference, and Evaluation**
 3. **Results Output and Visualization**
 
 ---
 
-## 📦 Module 1: Preprocessing
+## Module 1: Preprocessing & Metric Calculation
 
-This module prepares both observation and model data as input for the learning and evaluation phases.
+This module prepares input data and computes shared evaluation metrics (e.g., alpha).
+
+---
 
 ### **1. AGCD Ground Truth (5km resolution)**
 
-Run the following script to process the AGCD rainfall ground truth data:
-
+#### ➤ Data Processing
 ```bash
 python preprocessing/Data_process_code/agcd_mask_processing.py
 ```
-
-This step masks and aligns the high-resolution (5km) AGCD dataset for supervised training and evaluation.
 
 ---
 
 ### **2. ACCESS-S2 Forecast Data (60km → Interpolated to 40km)**
 
-Run the following script to process the ACCESS-S2 model forecast data:
-
+#### ➤ Data Processing
 ```bash
 python preprocessing/Data_process_code/ACCESS_e01.py
 ```
-
-This script:
-- Reads original ACCESS-S2 data at 60km resolution
-- Interpolates the data to 40km resolution for compatibility with the learning models
 
 ---
 
 ### **3. Quantile Mapping (QM) Preprocessing**
 
-Crop and prepare the quantile mapping input data by running:
-
+#### ➤ Data Preparation
 ```bash
 python preprocessing/QM_pre/QM_data_crop_e1.py
 ```
 
 ---
 
+---
+
 ## 🚀 Module 2: Models and Evaluation
 
-This module runs deep learning models, baseline evaluations, and metrics computation.
+This module runs deep learning models, baseline evaluations, and computes predictive performance metrics.
 
 ---
 
-## 🌧️ 1. PRGAN (Probabilistic Rainfall GAN)
-
-### **Step-by-step Usage**
+### 🌧️ 1. PRGAN (Probabilistic Rainfall GAN)
 
 #### 1. Train the initial PRGAN model:
 ```bash
@@ -73,22 +66,8 @@ python model_built/pretrain.py
 python model_built/test_pab.py
 ```
 
-- When `generate = False`: outputs the predicted **rainfall probability (p)** and **gamma distribution parameters**:  
-  - \( \alpha \) (shape),  
-  - \( \beta \) (scale)
-
-- When `generate = True`: generates rainfall values using the following formula:
-
-### **Rainfall Generation Equation**
-
-```python
-def generate_sample(bg_output):
-    p_pred = torch.sigmoid(bg_output[:, 0, :, :]).unsqueeze(1)  # rain probability
-    p_pred = (p_pred > 0.5).float()
-    alpha_pred = torch.exp(bg_output[:, 1, :, :]).unsqueeze(1)  # shape parameter
-    beta_pred = torch.exp(bg_output[:, 2, :, :]).unsqueeze(1)   # scale parameter
-    return p_pred * (alpha_pred * beta_pred)
-```
+When `generate = False`: outputs **rainfall probability (p)** and **gamma distribution parameters**  
+When `generate = True`: generates rainfall values via:
 
 Mathematically:
 
@@ -96,21 +75,24 @@ Mathematically:
 \hat{R} = \mathbf{1}_{\{p > 0.5\}} \cdot (\alpha \cdot \beta)
 ```
 
-#### 4. Evaluate distribution-based metrics:
+#### 4. Distribution-based evaluation:
 ```bash
 python eval_distribution.py
 ```
 
-#### 5. Evaluate relative bias:
+#### 5. Relative bias evaluation:
 ```bash
 python model_built/eval_PEFGAN.py
 ```
 
+#### 6. Alpha metric evaluation:
+```bash
+python model_built/eval_alpha_dis.py
+```
+
 ---
 
-## ⚡ 2. DESRGAN
-
-### **Step-by-step Usage**
+### ⚡ 2. DESRGAN
 
 #### 1. Train the model:
 ```bash
@@ -122,92 +104,100 @@ python train.py
 python model_built/test.py
 ```
 
-#### 3. Evaluate all metrics including distribution and relative bias:
+#### 3. Evaluate standard metrics:
 ```bash
 python model_built/eval_PEFGAN.py
 ```
 
-This will generate rainfall forecasts for 41 lead times and compute:
+Generates:
 - Brier scores (0.95, 0.99, 0.995)
 - CRPS
 - MAE (Median)
 - Relative Bias
 
+#### 4. Alpha metric evaluation:
+```bash
+python model_built/eval_alpha.py
+```
+
 ---
 
-## 🌦️ 3. Climatology Baseline
+### 🌦️ 3. Climatology Baseline
 
-### **Step-by-step Usage**
-
-#### 1. Generate climatology tables:
+#### 1. Create climatology lookup tables:
 ```bash
 python crps_calculation_code/clim_table_csv.py
 ```
 
-#### 2. Run the climatology-based forecast and evaluation:
+#### 2. Run climatology forecast & metrics:
 ```bash
 python crps_calculation_code/climatology.py
 ```
 
+#### 3. Alpha metric evaluation:
+```bash
+python crps_calculation_code/climatology_alpha.py
+```
+
 ---
 
-## 📉 4. Quantile Mapping (QM)
+### 📉 4. Quantile Mapping (QM)
 
-### **Step-by-step Usage**
-
-#### 1. Run quantile-mapping-based evaluation:
+#### 1. Evaluate QM forecast:
 ```bash
 python crps_calculation_code/evalQM.py
+```
+
+#### 2. Alpha metric evaluation:
+```bash
+python crps_calculation_code/qm_alpha.py
 ```
 
 ---
 
 ## 🗂️ Module 3: Results Output and Visualization
 
-This module exports evaluation results and visualizes spatial metrics across the region and time.
+This module exports evaluation results and visualizes spatial metrics.
 
 ---
 
-### **1. Output CSV of Averaged Results (41 Lead Times)**
-
-Run the following script to compute and save average metrics over all lead times:
+### **1. Output Average Metrics Over 41 Lead Times**
 
 ```bash
 python crps_calculation_code/crps_ss.py
 ```
 
-This will generate CSV tables with average Brier scores, CRPS, MAE, etc.
+Generates CSV tables with:
+- CRPS, MAE, Brier scores, alpha, 7 metrics
+- Per-lead-time average metrics
 
 ---
 
 ### **2. Visualize Spatial Metric Differences**
 
 #### a. Brier Score Difference Maps
-
 ```bash
 python visual/diff_brier.py
 ```
 
-This creates spatial visualizations showing Brier score differences between methods or lead times.
-
 #### b. CRPS Difference Maps
-
 ```bash
 python visual/diff_crps.py
 ```
 
-This creates interpolated spatial maps for CRPS differences.
+These generate interpolated spatial maps of metric differences across regions.
 
 ---
 
-## 📊 Metrics Explanation
+## 📊 Metrics Summary
 
 | Metric       | Description                                                                 |
 |--------------|-----------------------------------------------------------------------------|
-| **Brier**    | Measures the accuracy of probabilistic forecasts at thresholds (0.95, etc.) |
-| **CRPS**     | Compares the full distribution forecast with observations                   |
-| **MAE**      | Median Absolute Error of the rainfall predictions                           |
-| **Rel. Bias**| Relative bias of the predicted rainfall                                     |
+| **Brier**    | Accuracy of probabilistic forecasts at thresholds (e.g. 0.95)              |
+| **CRPS**     | Continuous Ranked Probability Score: full distribution accuracy            |
+| **MAE**      | Median Absolute Error of rainfall values                                   |
+| **Rel. Bias**| Bias between predicted vs observed rainfall                                |
+| **Alpha**    | Characterizes predicted distribution sharpness/uncertainty                 |
 
 ---
 
@@ -218,7 +208,7 @@ Please ensure the following dependencies are installed:
 - PyTorch >= 1.8
 - NumPy, Pandas, Matplotlib
 - xarray, netCDF4, Basemap (for spatial plotting)
-- Other requirements in `requirements.txt` (if present)
+- Other packages from `requirements.txt`
 
 ---
 
@@ -237,19 +227,23 @@ Please ensure the following dependencies are installed:
 │   ├── pretrain.py
 │   ├── test_pab.py
 │   ├── test.py
-│   └── eval_PEFGAN.py
+│   ├── eval_PEFGAN.py
+│   ├── eval_distribution.py
+│   ├── eval_alpha_dis.py
+│   └── eval_alpha.py
 ├── crps_calculation_code/
 │   ├── clim_table_csv.py
 │   ├── climatology.py
+│   ├── climatology_alpha.py
 │   ├── evalQM.py
+│   ├── qm_alpha.py
 │   └── crps_ss.py
 ├── visual/
 │   ├── diff_brier.py
 │   └── diff_crps.py
-├── eval_distribution.py
-├── train.py  # for DESRGAN
 ```
 
 ---
 
-For any issues or bugs, please raise an issue or contact the authors. Happy forecasting! 🌧️📈
+For questions or issues, please open an issue on the repository.  
+Happy forecasting! 🌧️📈
