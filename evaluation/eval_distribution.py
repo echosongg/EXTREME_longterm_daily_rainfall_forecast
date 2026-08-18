@@ -1,4 +1,4 @@
-import data_processing_tool as dpt
+from evaluation import data_processing_tool as dpt
 import random
 from torch.utils.data import Dataset
 import torch
@@ -32,8 +32,7 @@ logging.basicConfig(
     ]
 )
 
-#def calculate_pit_values(ensemble_forecasts, observations, epsilon=1e-6):
-def calculate_pit_values(p_pred, alpha_pred, beta_pred, observations, history, shave_border=0, num_values=10, epsilon = 1e-6):
+def calculate_pit_values(ensemble_forecasts, observations, epsilon=1e-6):
     """
     Calculate PIT (Probability Integral Transform) values for 3D ensemble forecasts.
 
@@ -48,47 +47,22 @@ def calculate_pit_values(p_pred, alpha_pred, beta_pred, observations, history, s
     array: A 2D array of PIT values with the same shape as observations.
     """
     # Ensure inputs are numpy arrays
-    p_pred = torch.tensor(p_pred, dtype=torch.float32, device=device)
-    alpha_pred = torch.tensor(alpha_pred, dtype=torch.float32, device=device)
-    beta_pred = torch.tensor(beta_pred, dtype=torch.float32, device=device)
-    alpha_pred = torch.clamp(alpha_pred, min=1e-6)
-    beta_pred = torch.clamp(beta_pred, min=1e-6)
-    observations = torch.tensor(observations, dtype=torch.float32, device=device)
-    history = torch.tensor(history, dtype=torch.float32, device=device)
-    ensemble_forecasts = torch.zeros((num_values, *p_pred.shape), dtype=torch.float32, device=device)
-    # Generate 10 predicted values based on Gamma distribution
-    for i in range(num_values):
-        is_rain = torch.bernoulli(p_pred)
-        rain_amount = torch.distributions.gamma.Gamma(alpha_pred, 1/beta_pred).sample()
-        ensemble_forecasts[i] = is_rain * rain_amount  # If no rain, rain amount is 0
-    
-    # Remove border pixels
-    ensemble_forecasts = torch.expm1(ensemble_forecasts * 7)
-    ensemble_forecasts = ensemble_forecasts.view(-1, *observations.shape)
-    ensemble_forecasts = torch.minimum(ensemble_forecasts, 1.1 * history) # Limit values to historical max
-    ensemble_forecasts = ensemble_forecasts.cpu().numpy()
-    observations = observations.cpu().numpy()
-    print("ensemble_forecasts", ensemble_forecasts.shape)
-    print("observations", observations.shape)
-
+    ensemble_forecasts = np.array(ensemble_forecasts)
+    observations = np.array(observations)
 
     # Check input shapes
     if ensemble_forecasts.ndim != 3 or observations.ndim != 2:
         raise ValueError(
             "Input dimensions are incorrect. ensemble_forecasts should be 3D and observations should be 2D.")
-    #ensemble_forecasts (90, 413, 267)
-    #observations (413, 267)
-    ensemble_forecasts = np.transpose(ensemble_forecasts, (1, 2, 0))
+
     if ensemble_forecasts.shape[:2] != observations.shape:
         raise ValueError("Horizontal and vertical dimensions of ensemble_forecasts and observations must match.")
 
     # Count the total number of ensemble members
     n_ensemble = ensemble_forecasts.shape[-1]
-    print("n_ensenmble: ", n_ensemble)
 
     # Sort each ensemble forecast
     sorted_forecasts = np.sort(ensemble_forecasts, axis=-1)
-
 
     # Calculate left and right ranks
     left_ranks = np.zeros_like(observations, dtype=int)
@@ -111,92 +85,9 @@ def calculate_pit_values(p_pred, alpha_pred, beta_pred, observations, history, s
 
     # Apply the tiny perturbation to avoid extreme values of 0 and 1
     pit_values = np.clip(pit_values, epsilon, 1 - epsilon)
-    print("pit value shape:",pit_values.shape)
 
     return pit_values
 
-#def calculate_pit_values(ensemble_forecasts, observations, epsilon=1e-6):
-def calculate_pit_values_plus(p_pred, alpha_pred, beta_pred, observations, history, shave_border=0, num_values=10, epsilon = 1e-6):
-    """
-    Calculate PIT (Probability Integral Transform) values for 3D ensemble forecasts.
-
-    Parameters:
-    ensemble_forecasts (array-like): A 3D array where dimensions represent:
-                                     (Horizontal axis, Vertical axis, Ensemble member)
-    observations (array-like): A 2D array of corresponding observed values with dimensions:
-                               (Horizontal axis, Vertical axis)
-    epsilon (float): A tiny value to adjust PIT away from extremes (default: 1e-6)
-
-    Returns:
-    array: A 2D array of PIT values with the same shape as observations.
-    """
-    # Ensure inputs are numpy arrays
-    p_pred = torch.tensor(p_pred, dtype=torch.float32, device=device)
-    alpha_pred = torch.tensor(alpha_pred, dtype=torch.float32, device=device)
-    beta_pred = torch.tensor(beta_pred, dtype=torch.float32, device=device)
-    alpha_pred = torch.clamp(alpha_pred, min=1e-6)
-    beta_pred = torch.clamp(beta_pred, min=1e-6)
-    observations = torch.tensor(observations, dtype=torch.float32, device=device)
-    history = torch.tensor(history, dtype=torch.float32, device=device)
-    ensemble_forecasts = torch.zeros((num_values, *p_pred.shape), dtype=torch.float32, device=device)
-    # Generate 10 predicted values based on Gamma distribution
-    for i in range(num_values):
-        is_rain = torch.bernoulli(p_pred)
-        rain_amount = torch.distributions.gamma.Gamma(alpha_pred, 1/beta_pred).sample()
-        ensemble_forecasts[i] = is_rain * rain_amount  # If no rain, rain amount is 0
-    
-    # Remove border pixels
-    ensemble_forecasts = torch.expm1(ensemble_forecasts * 7)
-    ensemble_forecasts = ensemble_forecasts.view(-1, *observations.shape)
-    ensemble_forecasts = torch.minimum(ensemble_forecasts, 1.1 * history) # Limit values to historical max
-    ensemble_forecasts = ensemble_forecasts.cpu().numpy()
-    observations = observations.cpu().numpy()
-    print("ensemble_forecasts", ensemble_forecasts.shape)
-    print("observations", observations.shape)
-
-
-    # Check input shapes
-    if ensemble_forecasts.ndim != 3 or observations.ndim != 2:
-        raise ValueError(
-            "Input dimensions are incorrect. ensemble_forecasts should be 3D and observations should be 2D.")
-    #ensemble_forecasts (90, 413, 267)
-    #observations (413, 267)
-    ensemble_forecasts = np.transpose(ensemble_forecasts, (1, 2, 0))
-    if ensemble_forecasts.shape[:2] != observations.shape:
-        raise ValueError("Horizontal and vertical dimensions of ensemble_forecasts and observations must match.")
-
-    # Count the total number of ensemble members
-    n_ensemble = ensemble_forecasts.shape[-1]+1
-    print("n_ensenmble: ", n_ensemble)
-
-    # Sort each ensemble forecast
-    sorted_forecasts = np.sort(ensemble_forecasts, axis=-1)
-
-
-    # Calculate left and right ranks
-    left_ranks = np.zeros_like(observations, dtype=int)
-    right_ranks = np.zeros_like(observations, dtype=int)
-
-    for i in range(observations.shape[0]):
-        for j in range(observations.shape[1]):
-            left_ranks[i, j] = np.searchsorted(sorted_forecasts[i, j], observations[i, j], side='left')
-            right_ranks[i, j] = np.searchsorted(sorted_forecasts[i, j], observations[i, j], side='right')
-
-    # Generate random values for cases where left_rank != right_rank
-    random_values = np.random.random(observations.shape)
-
-    # Calculate PIT values
-    pit_values = np.where(
-        left_ranks != right_ranks,
-        (left_ranks + random_values * (right_ranks - left_ranks)) / n_ensemble,
-        left_ranks / n_ensemble
-    )
-
-    # Apply the tiny perturbation to avoid extreme values of 0 and 1
-    pit_values = np.clip(pit_values, epsilon, 1 - epsilon)
-    print("pit value shape:",pit_values.shape)
-
-    return pit_values
 
 def calculate_alpha_index(pit_values):
     """
@@ -229,10 +120,84 @@ def calculate_alpha_index(pit_values):
     # Calculate the alpha index for each spatial point
     alpha_values = 1 - (2 / date_size) * sum_absolute_differences
 
-    print("alpha_values",alpha_values.shape)
+def calforecastprob_from_distribution(p_pred, alpha_pred, beta_pred, y_true, percentile, shave_border=0, num_values=10):
+    # Initialize prediction matrices
+    p_pred = torch.tensor(p_pred, dtype=torch.float32, device=device)
+    alpha_pred = torch.tensor(alpha_pred, dtype=torch.float32, device=device)
+    beta_pred = torch.tensor(beta_pred, dtype=torch.float32, device=device)
+    y_true = torch.tensor(y_true, dtype=torch.float32, device=device)
+    alpha_pred = torch.clamp(alpha_pred, min=1e-6)
+    beta_pred = torch.clamp(beta_pred, min=1e-6)
+    
+    if isinstance(percentile, (int, float)):
+        percentile = torch.tensor(percentile, dtype=torch.float32, device=device)
+    else:
+        percentile = torch.tensor(percentile, dtype=torch.float32, device=device)
 
-    return alpha_values
+    forecasts = torch.zeros((num_values, *p_pred.shape), dtype=torch.float32, device=device)
 
+    for i in range(num_values):
+        is_rain = torch.bernoulli(p_pred)
+        rain_amount = torch.distributions.gamma.Gamma(alpha_pred, beta_pred).sample()
+        forecasts[i] = is_rain * rain_amount
+
+    forecasts = torch.expm1(forecasts * 7)
+    forecasts = forecasts.view(-1, *y_true.shape)
+
+    if shave_border > 0:
+        forecasts = forecasts[:, shave_border:-shave_border, shave_border:-shave_border]
+
+    prob_matrix = (forecasts > percentile).float() 
+    return torch.mean(prob_matrix, dim=0)
+
+def calforecastprob(p_pred, alpha_pred, beta_pred, percentile):
+    ''' 
+    input: forecast is  9 * 413 * 267
+            percentile size is 413 * 267
+    return: A probability matrix which size is 413 * 267 indicating the probability of the values in ensemble forecast 
+    is greater than the value in the same pixel in percentile matrix
+
+    '''
+    
+    prob_matrix = (forecast > percentile)
+    return np.mean(prob_matrix, axis = 0)
+
+def calAWAPdryprob(AWAP_data, percentile):
+
+    return (AWAP_data >= percentile) * 1
+
+def calforecastdryprob(forecast, percentile):
+
+    prob_matrix = (forecast >= percentile)
+    return np.mean(prob_matrix, axis = 0)   
+    
+def mae_median(p_pred, alpha_pred, beta_pred, hr, num_values=30):
+    '''
+    ens:(ensemble,H,W)
+    hr: (H,W)
+    '''
+    p_pred = torch.tensor(p_pred, dtype=torch.float32, device=device)
+    alpha_pred = torch.tensor(alpha_pred, dtype=torch.float32, device=device)
+    beta_pred = torch.tensor(beta_pred, dtype=torch.float32, device=device)
+    hr = torch.tensor(hr, dtype=torch.float32, device=device)
+    alpha_pred = torch.clamp(alpha_pred, min=1e-6)
+    beta_pred = torch.clamp(beta_pred, min=1e-6)
+    print("p_pred",p_pred.shape)
+    forecasts = torch.zeros((num_values, *p_pred.shape), dtype=torch.float32, device=device)
+    for i in range(num_values):
+        is_rain = torch.bernoulli(p_pred)
+        rain_amount = torch.distributions.gamma.Gamma(alpha_pred, 1/beta_pred).sample()
+        forecasts[i] = is_rain * rain_amount
+    forecasts = torch.expm1(forecasts * 7)
+    forecasts = forecasts.view(-1, *hr.shape)
+    
+    #forecasts = torch.minimum(forecasts, 1.1 * history) # Limit values to historical max
+    median_forecasts = torch.median(forecasts, axis=0).values  # 修改这里，获取median的values属性
+    return torch.abs(median_forecasts - hr)
+
+# ===========================================================
+# Training settings
+# ===========================================================
 
 
 class ACCESS_AWAP_cali(Dataset):
@@ -359,6 +324,34 @@ def write_log(log, args):
     my_log_file.close()
     return
 
+def CRPS_from_distribution(p_pred, alpha_pred, beta_pred, y_true, history, shave_border=0, num_values = 10):
+    # Initialize prediction matrices
+    p_pred = torch.tensor(p_pred, dtype=torch.float32, device=device)
+    alpha_pred = torch.tensor(alpha_pred, dtype=torch.float32, device=device)
+    beta_pred = torch.tensor(beta_pred, dtype=torch.float32, device=device)
+    alpha_pred = torch.clamp(alpha_pred, min=1e-6)
+    beta_pred = torch.clamp(beta_pred, min=1e-6)
+    y_true = torch.tensor(y_true, dtype=torch.float32, device=device)
+    history = torch.tensor(history, dtype=torch.float32, device=device)
+    forecasts = torch.zeros((num_values, *p_pred.shape), dtype=torch.float32, device=device)
+    # Generate 10 predicted values based on Gamma distribution
+    for i in range(num_values):
+        is_rain = torch.bernoulli(p_pred)
+        rain_amount = torch.distributions.gamma.Gamma(alpha_pred, 1/beta_pred).sample()
+        forecasts[i] = is_rain * rain_amount  # If no rain, rain amount is 0
+    
+    # Remove border pixels
+    forecasts = torch.expm1(forecasts * 7)
+    forecasts = forecasts.view(-1, *y_true.shape)
+    forecasts = torch.minimum(forecasts, 1.1 * history) # Limit values to historical max
+    # Calculate CRPS
+    print("Shape of pred before squeeze:",p_pred.shape)
+    print("Shape of y_true before squeeze:",y_true.shape)
+    print("Shape of forecasts before squeeze:", forecasts.shape)
+    crps = ps.crps_ensemble(y_true.cpu().numpy(), forecasts.cpu().numpy().transpose(1, 2, 0))
+    crps = torch.tensor(crps, dtype=torch.float32, device=device)
+    return crps
+
 def main(year, days):
 
     model_name = 'model_G_i000008_20240824-212330_with_huber'
@@ -475,12 +468,42 @@ def main(year, days):
 
     args.test_start_time = datetime(year, 1, 1)
     args.test_end_time = datetime(year, 12, 31)
+
+    write_log("start", args)
+    percentile_95 = dpt.AWAPcalpercentile(Brier_startyear, Brier_endyear, 95)
+    #history higest rainfall
     history = dpt.AWAPcalpercentile(Brier_startyear, Brier_endyear, 100)
+    print("percentile 95 is : ", percentile_95)
+    # print("type of percentile95", type(percentile_95))
+    # print("The size of percentile95 ", len(percentile_95))
+    # print("The size of percentile95[0] ", len(percentile_95[0]))
+    # print('Maximum  value of percentile 95 ', percentile_95.max())
+    percentile_99 = dpt.AWAPcalpercentile(Brier_startyear, Brier_endyear, 99)
+    percentile_995 = dpt.AWAPcalpercentile(Brier_startyear, Brier_endyear, 99.5)
+    #print("args.test_start_time",args.test_start_time)
+    #print("args.access_path",args.file_ACCESS_dir)
+    #test_instance = ACCESS_AWAP_cali(args.test_start_time, args.test_end_time, lr_transform=lr_transforms, hr_transform=hr_transforms, shuffle=False, args=args)
+    #print(test_instance.__getitem__(0))  # 尝试获取第一个元素，看是否能正常工作
     def compute_metrics(sr, hr, args):
         metrics = {
-            "alpha_dis_plus": calculate_pit_values_plus(np.squeeze(sr[:, 0, :, :]), np.squeeze(sr[:, 1, :, :]), np.squeeze(sr[:, 2, :, :]), hr, history)
+            #"skil_dis": CRPS_from_distribution(np.squeeze(sr[:, 0, :, :]), np.squeeze(sr[:, 1, :, :]), np.squeeze(sr[:, 2, :, :]), hr,history),
+            #change
+            "mae_median_dis": mae_median(np.squeeze(sr[:, 0, :, :]), np.squeeze(sr[:, 1, :, :]), np.squeeze(sr[:, 2, :, :]), hr),
+            #"Brier_0": brier_score(calAWAPdryprob(hr, 0.1), calforecastdryprob(sr, 0.1)),
+            #"Brier_0_dis": brier_score(calAWAPdryprob(hr, 0.1), np.squeeze(sr[:, 0, :, :])),
+            #"Brier_95": brier_score(calAWAPprob(hr, percentile_95), calforecastprob(sr, percentile_95)),
+            # "Brier_95_dis": brier_score(calAWAPprob(hr, percentile_95), calforecastprob_from_distribution(np.squeeze(sr[:, 0, :, :]), np.squeeze(sr[:, 1, :, :]), np.squeeze(sr[:, 2, :, :]), hr, percentile_95)),
+            # #"Brier_99": brier_score(calAWAPprob(hr, percentile_99), calforecastprob(sr, percentile_99)),
+            # "Brier_99_dis": brier_score(calAWAPprob(hr, percentile_99), calforecastprob_from_distribution(np.squeeze(sr[:, 0, :, :]), np.squeeze(sr[:, 1, :, :]), np.squeeze(sr[:, 2, :, :]), hr, percentile_99)),
+            # "Brier_995_dis": brier_score(calAWAPprob(hr, percentile_995), calforecastprob_from_distribution(np.squeeze(sr[:, 0, :, :]), np.squeeze(sr[:, 1, :, :]), np.squeeze(sr[:, 2, :, :]), hr, percentile_995)),
+            #"alpha_dis": calculate_alpha_index(np.squeeze(sr[:, 0, :, :]), np.squeeze(sr[:, 1, :, :]), np.squeeze(sr[:, 2, :, :]), hr, num_values=10)
         }
         return metrics
+    def brier_score(prob_AWAP, prob_forecast): 
+        prob_AWAP = torch.tensor(prob_AWAP, dtype=torch.float32, device=device)
+        prob_forecast = torch.tensor(prob_forecast, dtype=torch.float32, device=device)
+        metric_data = (prob_AWAP - prob_forecast) ** 2
+        return metric_data
 
     for lead in range(0, days):
         args.leading_time_we_use = lead
@@ -490,7 +513,7 @@ def main(year, days):
         print("data_set length:", len(data_set))
         test_data = DataLoader(data_set, batch_size=18, shuffle=False, num_workers=args.n_threads, drop_last=True)
 
-        results = {metric: [] for metric in ["alpha_dis_plus"]} #"skil_dis", "mae_median_dis","Brier_95_dis", "Brier_99_dis","Brier_995_dis"，
+        results = {metric: [] for metric in ["mae_median_dis"]} #"skil_dis", "mae_median_dis","Brier_95_dis", "Brier_99_dis","Brier_995_dis"，
 
         for batch, (pr, hr, _, access_date, awap_date, _) in enumerate(test_data):
             with torch.no_grad():
@@ -511,10 +534,9 @@ def main(year, days):
         
         for key in results:
             if results[key]:  # 确保列表非空
-                results[key] = np.stack(results[key], axis=0)
-                results[key] = calculate_alpha_index(results[key])
-                mean_value = results[key]
-                #print(f"Average of {key}: {np.mean(mean_value)}")
+                results[key] = torch.stack(results[key]).cpu().numpy()
+                mean_value = np.mean(results[key], axis=0)
+                print(f"Average of {key}: {np.mean(mean_value)}")
 
                 folder_path = f"{base_path}{key}/{model_name}/{year}/"
                 if not os.path.exists(folder_path):
@@ -525,7 +547,7 @@ def main(year, days):
                 print(f"No results for {key}")
         
 if __name__ == '__main__':
-    years = [2006, 2018]
+    years = [2006]
     days = 42  # Assuming days remain constant for each year.
     for year in years:
         main(year, days)

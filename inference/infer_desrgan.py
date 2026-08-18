@@ -1,4 +1,4 @@
-import RRDBNet_arch as arch
+from model_built import RRDBNet_arch as arch
 import argparse
 import glob
 from os import mkdir

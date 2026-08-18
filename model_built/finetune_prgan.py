@@ -15,10 +15,10 @@ from torch.utils.data import random_split, DataLoader
 import properscoring as ps
 from datetime import date, timedelta
 from torchvision import transforms
-import pretrain_m_arch as G_arch
+import bernoulli_gamma_rrdbnet as G_arch
 import RRDBNet_arch as pre_arch
 
-from utils2 import Huber, ACCESS_AWAP_GAN, RMSE,  MAE, log_loss2, generate_sample,generate_3_channels, CRPS_from_distribution
+from prgan_training_utils import Huber, ACCESS_AWAP_GAN, RMSE,  MAE, log_loss2, generate_sample,generate_3_channels, CRPS_from_distribution
 
 import cv2
 
@@ -28,13 +28,10 @@ END_TIME = date(2005, 12, 31)
 
 EXP_NAME = "/scratch/iu60/xs5813/EXTREME"
 VERSION = "version_0"
-UPSCALE  = 8 # upscaling factor
+UPSCALE = 8  # upscaling factor
 
 NB_BATCH = 18  # mini-batch
-NB_Iteration = 20
-# 训练策略相关参数
-STAGE1_EPOCHS = 10  # 训练 `new_output_conv` 的前几轮
-STAGE2_EPOCHS = NB_Iteration - STAGE1_EPOCHS  # 训练前面层
+NB_Iteration = 10
 PATCH_SIZE = 256  # Training patch size
 NB_THREADS = 36
 
@@ -55,7 +52,7 @@ def write_log(log):
         os.mkdir("./save/")
     if not os.path.exists("./save/" + VERSION + "/"):
         os.mkdir("./save/" + VERSION + "/")
-    my_log_file = open("./save/" + VERSION + '/train_prgan_3.txt', 'a')
+    my_log_file = open("./save/" + VERSION + '/train_model_G_i000005_20240401-025017_no_huber.txt', 'a')
     #     log="Train for batch %d,data loading time cost %f s"%(batch,start-time.time())
     my_log_file.write(log + '\n')
     my_log_file.close()
@@ -68,13 +65,10 @@ def write_log(log):
 OSAVE_PREFIX = "/scratch/iu60/xs5813/DESRGAN_YAO/"
 OMODEL_PREFIX = OSAVE_PREFIX + "checkpoint/voriginal_DESRGAN/"
 
-#summer: model_G_name = "model_G_i000004_20241218-214333"
-model_G_name = "model_G_i000003_20250416-161818"
+model_G_name = "model_G_i000005_20240910-012407"
 #d_bug = "/scratch/iu60/xs5813/DESRGAN_ORIGINAL/DESRGAN/checkpoint/vTestRefactored/model_G_i000004_best_20240219-114819.pth"
 model_path = OMODEL_PREFIX +  "/" + model_G_name + ".pth"
 model_G = G_arch.ModifiedRRDBNet(model_path, 1, 3, 64, 23, gc=32).cuda()
-# 如果 model_G 是 DataParallel，访问 .module 才能看到实际的模型
-real_model_G = model_G.module if isinstance(model_G, nn.DataParallel) else model_G
 
 if torch.cuda.device_count() > 1:
     write_log("!!!Let's use" + str(torch.cuda.device_count()) + "GPUs!")
@@ -83,14 +77,8 @@ if torch.cuda.device_count() > 1:
 print("pretrain")
 
 ## Optimizers
-# 冻结所有层，除 `new_output_conv` 外
-for name, param in real_model_G.named_parameters():
-    param.requires_grad = False if "new_output_conv" not in name else True
-
-# **定义优化器**
-opt_G_stage1 = optim.Adam(real_model_G.new_output_conv.parameters(), lr=LR_G)  # 只优化最后一层
-opt_G_stage2 = optim.Adam([p for name, p in real_model_G.named_parameters() if "new_output_conv" not in name], lr=LR_G)  # 只优化前面的层
-
+params_G = list(filter(lambda p: p.requires_grad, model_G.parameters()))
+opt_G = optim.Adam(params_G, lr=LR_G)
 
 current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
 ## Load saved params
@@ -120,7 +108,7 @@ def get_initial_date(rootdir):
         if os.path.exists(access_path):
             _dates.append(date)
     return _dates
-file_ACCESS_dir = "/scratch/iu60/xs5813/Processed_data_q/"
+file_ACCESS_dir = "/scratch/iu60/xs5813/Processed_data_train/"
 dates = date_range(START_TIME, END_TIME)
 initial_dates = get_initial_date(file_ACCESS_dir)
 generator1 = torch.Generator().manual_seed(42)
@@ -181,7 +169,7 @@ def SaveCheckpoint(i, model_G=None, model_D=None, opt_G=None, opt_D=None, best=F
     i = i + START_ITER + 1
 
     torch.save(model_G, '{}/checkpoint/v{}/model_G_i{:06d}_{}_with_huber.pth'.format(EXP_NAME, str(VERSION), i,current_time))
-    torch.save(optimizer, '{}/checkpoint/v{}/opt_G_i{:06d}_{}.pth'.format(EXP_NAME, str(VERSION), i,current_time))
+    torch.save(opt_G, '{}/checkpoint/v{}/opt_G_i{:06d}_{}.pth'.format(EXP_NAME, str(VERSION), i,current_time))
     write_log("Checkpoint saved with timestamp " + current_time)
 
 print('model_version is: ', VERSION)
@@ -189,18 +177,7 @@ print('train batch size is ', NB_BATCH)
 ### TRAINING
 for itera in range(NB_Iteration):
     print("epoch:",itera)
-
-    # **确定当前训练阶段**
-    if itera < STAGE1_EPOCHS:
-        optimizer = opt_G_stage1  # 第一阶段
-        write_log("Training Stage 1: Only new_output_conv")
-    else:
-        if itera == STAGE1_EPOCHS:  # **切换到第二阶段**
-            for name, param in real_model_G.named_parameters():
-                param.requires_grad = True if "new_output_conv" not in name else False
-        optimizer = opt_G_stage2  # 第二阶段
-        write_log("Training Stage 2: Fine-tuning front layers")
-
+    batch = 0
     for batch, (lr, hr, _, _, _, _) in enumerate(train_dataloders):
 
         model_G.train()
@@ -210,8 +187,8 @@ for itera in range(NB_Iteration):
         np.random.seed(batch)
         #hh = np.random.randint(0, 688 - PATCH_SIZE + 1)
         #hw = np.random.randint(0, 880 - PATCH_SIZE + 1)
-        hh = np.random.randint(0, 257 - PATCH_SIZE + 1)
-        hw = np.random.randint(0, 257 - PATCH_SIZE + 1)
+        hh = np.random.randint(0, 408 - PATCH_SIZE + 1)
+        hw = np.random.randint(0, 264 - PATCH_SIZE + 1)
         # crop the patch
         hr = hr[:, :, hh:(hh + PATCH_SIZE), hw:(hw + PATCH_SIZE)]
         lr = lr[:, :, int(hh / UPSCALE):int((hh + PATCH_SIZE) / UPSCALE),
@@ -225,7 +202,7 @@ for itera in range(NB_Iteration):
         dT += time.time() - st
 
         st = time.time()
-        optimizer.zero_grad()
+        opt_G.zero_grad()
 
         # G
         # Generated image G(Il)  batch_H(Ig)
@@ -242,7 +219,7 @@ for itera in range(NB_Iteration):
         dT += time.time() - st
 
         st = time.time()
-        optimizer.zero_grad()
+        opt_G.zero_grad()
 
         output = model_G(batch_L)
         loss_Log = log_loss2(batch_H, output)
@@ -256,8 +233,8 @@ for itera in range(NB_Iteration):
 
         # Update
         loss_G.backward()
-        torch.nn.utils.clip_grad_norm_(real_model_G.parameters(), 0.1)
-        optimizer.step()
+        torch.nn.utils.clip_grad_norm_(params_G, 0.1)
+        opt_G.step()
         rT += time.time() - st
         print(f"Huber Loss: {loss_Pixel.item()}")
         print(f"Log Loss: {loss_Log .item()}")
@@ -284,7 +261,7 @@ for itera in range(NB_Iteration):
     rT = 0.
 
     ## Save models per iteration
-    SaveCheckpoint(itera, model_G, optimizer, best=False)
+    SaveCheckpoint(itera, model_G, opt_G, best=False)
 
     ## Validate per Iteration
     with torch.no_grad():
@@ -319,7 +296,7 @@ for itera in range(NB_Iteration):
                 batch_Out = np.squeeze(batch_Out, axis=1)  # 16*688*880
                 batch_Out = batch_Out.transpose(1, 2, 0) # 688*880*16
 
-                batch_Out = cv2.resize(batch_Out, (257, 257), interpolation=cv2.INTER_CUBIC)
+                batch_Out = cv2.resize(batch_Out, (267, 413), interpolation=cv2.INTER_CUBIC)
                 if len(batch_Out.shape) == 2:
                     batch_Out = batch_Out.reshape(batch_Out.shape[0], batch_Out.shape[1], 1)
                 # batch_Out = np.transpose(batch_Out, [2, 0, 1])
@@ -344,12 +321,10 @@ for itera in range(NB_Iteration):
     avg_crps = np.mean(np.asarray(crps))
     write_log('AVG RMSE: Validation: {:.4f}, AVG MAE: Validation: {:.4f}, AVG CRPS: Validation: {:.4f}, merge metric: Validation: {:.4f}'.format(avg_rmse, avg_mae, avg_crps, avg_mae+1.3*avg_crps))
 #原尺度，去掉log1p
-# validation mask ocean data, 防止数据不好的地方影响到我的model
-# extreme
-# probability 是要在当月的尺度算
+#validation mask ocean data, 防止数据不好的地方影响到我的model
+#extreme
+#probability 是要在当月的尺度算
     # Save best model
     if np.mean(np.asarray(rmses)) < best_avg_rmses:
         best_avg_rmses = np.mean(np.asarray(rmses))
-        SaveCheckpoint(itera, model_G, optimizer, best=True)
-
-# 先固定前面的weight，训练几轮最后一层，然后再调节他前面几层
+        SaveCheckpoint(itera, model_G, opt_G, best=True)

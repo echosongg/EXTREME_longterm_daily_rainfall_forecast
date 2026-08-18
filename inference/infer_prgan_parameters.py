@@ -1,4 +1,4 @@
-import pretrain_m_arch as arch
+from model_built import bernoulli_gamma_rrdbnet as arch
 import argparse
 import glob
 from os import mkdir
@@ -9,7 +9,7 @@ import numpy as np
 import torch
 import xarray as xr
 from torch.autograd import Variable
-from utils2 import generate_sample, generate_3_channels
+from model_built.prgan_training_utils import generate_sample, generate_3_channels
 from datetime import date, timedelta, datetime
 import os
 # from tqdm import tqdm

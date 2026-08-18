@@ -1,6 +1,9 @@
 import torch
 import torch.nn as nn
-import RRDBNet_arch as pre_arch
+try:
+    from model_built import RRDBNet_arch as pre_arch
+except ModuleNotFoundError:
+    import RRDBNet_arch as pre_arch
 import torch.nn.functional as F
 import functools
 

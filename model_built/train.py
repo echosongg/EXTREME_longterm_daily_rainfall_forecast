@@ -17,7 +17,7 @@ import properscoring as ps
 from datetime import date, timedelta
 from torchvision import transforms
 
-from utils import Huber, ACCESS_AWAP_GAN, RMSE, MAE, CRPS
+from desrgan_training_utils import Huber, ACCESS_AWAP_GAN, RMSE, MAE, CRPS
 
 import cv2
 
