@@ -26,7 +26,7 @@ The generator progressively upsamples coarse ACCESS-S2 rainfall through cascaded
 For rainfall amount \(R\), PRGAN uses a mixed distribution consisting of a point mass at zero and a Gamma distribution for wet days:
 
 $$
-P(R = 0) = 1-p, \qquad R \mid R>0 \sim \operatorname{Gamma}(\alpha, \beta).
+P(R = 0) = 1-p, \qquad R \mid R>0 \sim \mathrm{Gamma}(\alpha, \beta).
 $$
 
 The three spatial output fields are transformed into valid distribution parameters as
