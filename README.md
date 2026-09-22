@@ -1,8 +1,8 @@
 # PRGAN: Probabilistic Downscaling of Seasonal Rainfall Forecasts with Improved Extreme-Event Skill
 
-PRGAN is a probabilistic deep-learning framework for statistical downscaling of subseasonal-to-seasonal daily rainfall forecasts. It converts coarse-resolution ACCESS-S2 ensemble forecasts into kilometre-scale predictive rainfall distributions over Eastern Australia.
+PRGAN is a probabilistic deep-learning framework for statistical downscaling of subseasonal-to-seasonal daily rainfall forecasts. It converts coarse-resolution raw ACCESS-S2 ensemble forecasts into kilometre-scale predictive rainfall distributions over Eastern Australia, mainly Queensland.
 
-Unlike deterministic super-resolution models, PRGAN predicts an explicit Bernoulli-Gamma distribution at every 5 km grid cell. This provides rain-occurrence probabilities, conditional rainfall amounts, and threshold-exceedance probabilities in a single forward pass.
+Unlike deterministic super-resolution models like DESRGAN or VDSD, PRGAN predicts an explicit Bernoulli-Gamma distribution at every 5 km grid cell. This provides rain-occurrence probabilities, conditional rainfall amounts, and threshold-exceedance probabilities in a single forward pass.
 
 ## Highlights
 
